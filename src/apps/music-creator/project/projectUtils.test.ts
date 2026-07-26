@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyProject } from "./createProject";
-import { duplicateProject, renameProject } from "./projectUtils";
+import { duplicateProject, renameProject, commitStudioProject } from "./projectUtils";
 
 describe("duplicateProject", () => {
   const fixedNow = "2026-07-24T12:00:00.000Z";
@@ -53,5 +53,24 @@ describe("renameProject", () => {
     expect(renamed.id).toBe(project.id);
     expect(renamed.createdAt).toBe(project.createdAt);
     expect(renamed.tempo).toBe(project.tempo);
+  });
+});
+
+describe("commitStudioProject", () => {
+  const fixedNow = "2026-07-24T12:00:00.000Z";
+
+  it("trims name, clones body, and touches updatedAt for Studio Save", () => {
+    const project = createEmptyProject("proj-1", {
+      name: "  Loop  ",
+      now: "2026-01-01T00:00:00.000Z",
+    });
+    project.drums.kick[0] = true;
+
+    const committed = commitStudioProject(project, { now: fixedNow });
+
+    expect(committed.name).toBe("Loop");
+    expect(committed.updatedAt).toBe(fixedNow);
+    expect(committed.drums.kick[0]).toBe(true);
+    expect(project.name).toBe("  Loop  ");
   });
 });

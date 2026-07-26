@@ -1,8 +1,8 @@
 import {
   isRecoverableLoadError,
   STORAGE_ERROR_MESSAGES,
-} from "../constants/storageMessages";
-import type { StorageErrorCode } from "../types";
+} from "../../constants/storageMessages";
+import type { StorageErrorCode } from "../../types";
 
 export interface StorageRecoveryPanelProps {
   errorCode: StorageErrorCode;

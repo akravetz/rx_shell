@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAppSubRoute } from "../../shell/useAppSubRoute";
 import { SAMPLE_PREVIEW_PROJECT_ID } from "./constants/storageMessages";
-import { LoadingPanel } from "./components/LoadingPanel";
+import { LoadingPanel } from "./components/storage/LoadingPanel";
 import { createEmptyProject } from "./project/createProject";
-import { duplicateProject, renameProject } from "./project/projectUtils";
+import { duplicateProject, renameProject, commitStudioProject } from "./project/projectUtils";
 import { isKnownProjectId, registerSessionProjectId } from "./routing/projectRoute";
 import { loadStore, resetStore, saveStore } from "./storage/storage";
 import type {
   MusicCreatorStoreEnvelope,
+  MusicProject,
   ProjectLoadWarning,
   StorageErrorCode,
 } from "./types";
 import { ProjectHub } from "./views/ProjectHub";
-import { Studio } from "./views/Studio";
+import { Studio, type StudioSaveResult } from "./views/Studio";
 
 const APP_ID = "music-creator";
 
@@ -264,6 +265,55 @@ export function MusicCreatorContent() {
     [persistEnvelope, refreshStore, requireLoadedEnvelope],
   );
 
+  /**
+   * Studio explicit Save — merge workingCopy into envelope, touch updatedAt, saveStore.
+   * Separate from hub rename (immediate) and from autosave (post-MVP).
+   */
+  const handleSaveStudioProject = useCallback(
+    (project: MusicProject): StudioSaveResult => {
+      const envelope = requireLoadedEnvelope();
+      if (!envelope) {
+        return {
+          ok: false,
+          message: "Projects could not be loaded — fix storage before saving.",
+        };
+      }
+
+      if (!envelope.projects[project.id]) {
+        refreshStore();
+        return {
+          ok: false,
+          message: "Project not found — it may have been deleted.",
+        };
+      }
+
+      const trimmed = project.name.trim();
+      if (!trimmed) {
+        return { ok: false, message: "Project name cannot be empty." };
+      }
+
+      const committed = commitStudioProject(project);
+      const nextEnvelope: MusicCreatorStoreEnvelope = {
+        ...envelope,
+        projects: {
+          ...envelope.projects,
+          [project.id]: committed,
+        },
+      };
+
+      const saveResult = saveStore(nextEnvelope);
+      if (!saveResult.ok) {
+        setActionError(saveResult.message);
+        return { ok: false, message: saveResult.message };
+      }
+
+      refreshStore();
+      setActionError(null);
+      return { ok: true };
+    },
+    [refreshStore, requireLoadedEnvelope],
+  );
+
   // --- Render: pick hub vs studio vs unknown route ---
   if (section === "" || section === "projects") {
     // Hub is presentational — all persistence logic lives in handlers above.
@@ -303,13 +353,13 @@ export function MusicCreatorContent() {
       return null;
     }
 
-    const studioProject = storeState?.envelope.projects[studioProjectId];
+    const savedProject = storeState?.envelope.projects[studioProjectId];
 
     return (
       <Studio
         projectId={studioProjectId}
-        projectName={studioProject?.name}
-        projectTempo={studioProject?.tempo}
+        savedProject={savedProject}
+        onSaveProject={handleSaveStudioProject}
         onBackToProjects={() => navigate("projects")}
       />
     );

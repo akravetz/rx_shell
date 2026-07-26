@@ -38,3 +38,17 @@ export function renameProject(
     updatedAt: now,
   };
 }
+
+/** Studio explicit Save — clone project body, trim name, touch updatedAt */
+export function commitStudioProject(
+  project: MusicProject,
+  options: ProjectMutationOptions = {},
+): MusicProject {
+  const now = options.now ?? new Date().toISOString();
+
+  return {
+    ...structuredClone(project),
+    name: project.name.trim(),
+    updatedAt: now,
+  };
+}

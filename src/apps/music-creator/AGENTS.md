@@ -18,18 +18,18 @@ Update this file when a milestone phase ships new conventions or verification st
 
 ---
 
-## Current progress (Milestone 2)
+## Current progress
 
 | Phase | Status | Scope |
 | ----- | ------ | ----- |
-| **2.0** | Complete | Routing follow-ups, region landmarks, studio URL guards, session id registry |
-| **2.1** | Complete | `types.ts`, `constants/music.ts`, `project/createProject.ts` factories |
-| **2.2** | Complete | `storage/storage.ts`, `migrate.ts`, `validate.ts`, `StorageResult` I/O |
-| **2.3** | Complete | Vitest for validate, migrate, create, duplicate; load warnings (no auto-write) |
-| **2.4** | Complete | Hub load/create/save/open; store-backed route validation |
-| **2.5** | Complete | Rename, duplicate, delete (confirm dialog); full hub CRUD |
-| **2.6** | Complete | Recovery UX, loading states, sample-preview documented as dev shortcut |
-| **M3+** | Not started | Studio sequencer UI, explicit save, audio |
+| **M2** | Complete | Persistence, hub CRUD, recovery UX, Vitest (30 tests) |
+| **3.1** | Complete | `TransportBar`, Studio `workingCopy`, dirty indicator (Save stub) |
+| **3.2** | Complete | `StepCell`, `DrumSequencer` (4×16), drum edits → `isDirty` |
+| **3.3** | Complete | `MelodyGrid` (8×16 monophonic), melody edits → `isDirty` |
+| **3.4** | Complete | `MuteToggle` per track, `workingCopy.mutes` → `isDirty` |
+| **3.5** | Complete | Functional Save, leave confirm, `leaveGuard` for nav |
+| **M3** | **Complete** | Studio sequencer UI (silent) — ready for M4 audio |
+| **M4+** | Not started | Tone.js audio |
 
 Do **not** add files from later phases until that phase starts (see [Milestone boundaries](#milestone-boundaries)).
 
@@ -124,11 +124,18 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 | Blank project / empty store factories | `project/createProject.ts` |
 | Hub list sort / date display | `project/sortProjects.ts`, `project/formatProject.ts` |
 | Duplicate, rename helpers | `project/projectUtils.ts` |
-| Hub project row + dialogs | `components/ProjectCard.tsx`, `ConfirmDeleteDialog.tsx`, `ConfirmResetStorageDialog.tsx` |
-| Recovery / loading UI | `components/StorageRecoveryPanel.tsx`, `LoadWarningsBanner.tsx`, `LoadingPanel.tsx` |
+| Hub project row + dialogs | `components/ProjectCard.tsx`, `components/ConfirmDeleteDialog.tsx` |
+| Studio transport toolbar | `components/TransportBar.tsx` (M3 phase 3.1+) |
+| Sequencer cells + drum grid | `components/StepCell.tsx`, `components/DrumSequencer.tsx` (M3 phase 3.2+) |
+| Melody grid | `components/MelodyGrid.tsx` (M3 phase 3.3+) |
+| Per-track mute control | `components/MuteToggle.tsx` (M3 phase 3.4+) |
+| Studio leave confirm | `components/ConfirmLeaveStudioDialog.tsx`, `routing/leaveGuard.ts` (M3 phase 3.5) |
+| Studio Save helper | `project/projectUtils.ts` → `commitStudioProject` |
+| Storage load / recovery UI | `components/storage/` — `LoadingPanel`, `LoadWarningsBanner`, `StorageRecoveryPanel`, `ConfirmResetStorageDialog` |
 | Load, save, migrate, validate | `storage/*.ts` |
 | Pure helper tests | Colocated `**/*.test.ts` (phase 2.3+) |
 | Studio URL guards (interim) | `routing/projectRoute.ts` |
+| Studio dirty leave guard | `routing/leaveGuard.ts` |
 | Router | `MusicCreatorContent.tsx` |
 | Hub / Studio views | `views/` |
 | Shared UI | `components/` (when milestone needs them) |
@@ -166,11 +173,10 @@ Never throw from storage into React render. Never silently catch write failures.
 
 | Phase | Do not add yet |
 | ----- | -------------- |
-| Before 3.x | Sequencer components, `TransportBar`, Studio Save/dirty |
 | Before 4.x | `tone` dependency, `audio/` |
 | MVP | App-local Zustand, command bus, `headerItems`, autosave, `Transport.cancel()` |
 
-(Milestone 2 phase gates removed — M2 is complete.)
+(Milestone 3 complete. M4 adds Tone.js playback.)
 
 ---
 
@@ -207,9 +213,62 @@ Core flows (hub CRUD, routing, persistence, recovery):
 
 **Invalid project on disk** — add `"bad-id": { "name": "broken" }` inside `projects`, reload → warning banner → valid cards still shown → **Remove invalid from storage** → `bad-id` gone from disk.
 
-### Studio (M3+) — add when implemented
+### Studio (M3) — phase 3.1
 
-- [ ] Explicit Save writes `localStorage`; dirty indicator; leave confirm on app-controlled navigation
+- [x] Open saved project in Studio — name/tempo controls in transport toolbar; Play/Stop disabled
+- [x] Edit name or tempo — dirty indicator shows "Unsaved changes"; Save enables (sample-preview: Save disabled)
+- [x] `npm run check` and `npm test` (music-creator) pass
+
+### Studio (M3) — phase 3.2
+
+- [x] Open saved project — 4×16 drum grid with lane labels and step numbers 1–16
+- [x] Click a drum cell — toggles on/off (accent fill when on); transport shows **Unsaved changes**; Save **button** enables
+- [x] Tab to a cell — `:focus-visible` ring; Space toggles via native button behavior
+- [x] Inspect a cell in devtools a11y tree — native `button`, `aria-pressed` true/false, label like `Kick, step 3, on`
+- [x] `npm run check` and `npm test` (music-creator) pass
+
+### Studio (M3) — phase 3.3
+
+- [x] Open saved project — 8×16 melody grid with pitch labels (C4–C5) and step numbers 1–16
+- [x] Click a pitch in a column — cell lights; only one row active per column (monophonic)
+- [x] Click the lit cell again — clears to rest (no row active in that column)
+- [x] Click a different pitch in the same column — previous cell clears, new pitch lights
+- [x] Melody edit sets **Unsaved changes** and enables Save **button** (still no disk write until 3.5)
+- [x] Tab / Space on a melody cell — same a11y behavior as drum cells (`aria-pressed`, focus ring)
+- [x] `npm run check` and `npm test` (music-creator) pass
+
+### Studio (M3) — phase 3.4
+
+- [x] Each drum lane has an **M** mute button beside the lane name; Melody section has **M** beside the title
+- [x] Click **M** — button shows muted styling (`aria-pressed` true); inactive step cells dim slightly; pattern cells still editable
+- [x] Click **M** again — unmutes; mute change sets **Unsaved changes** and enables Save **button**
+- [x] `npm run check` and `npm test` (music-creator) pass
+
+### Studio (M3) — phase 3.5 / milestone sign-off
+
+- [x] Save writes pattern/name/tempo/mutes to `localStorage`; refresh restores state; dirty indicator returns to **Saved**
+- [x] Save failure shows banner; project stays dirty (stub quota via DevTools optional)
+- [x] **All projects** or left nav **Projects** with dirty state → leave confirm; **Stay** keeps edits; **Leave** discards
+- [x] Clean project navigates without confirm
+- [x] Browser Back / refresh / shell **Applications** or **Settings**: no custom confirm (known limitations)
+- [x] `npm run check` and `npm test` (music-creator) pass
+
+**Stretch (post-MVP):** `beforeunload` when dirty — generic browser prompt on refresh/tab close only.
+
+#### Studio save failure (DevTools)
+
+1. Open Studio on a saved project; make an edit so **Save** enables.
+2. DevTools → **Console**:
+   ```js
+   const key = "music-creator:store";
+   const orig = localStorage.setItem.bind(localStorage);
+   localStorage.setItem = function (k, v) {
+     if (k === key) throw new DOMException("QuotaExceededError", "QuotaExceededError");
+     return orig(k, v);
+   };
+   ```
+3. Click **Save** → red error banner in Studio; project stays **Unsaved changes**; pattern still in the grid.
+4. Restore: `localStorage.setItem = orig` (re-run bind from step 2 if needed) or hard refresh.
 
 ### Audio (M4+) — add when implemented
 
@@ -228,6 +287,7 @@ Core flows (hub CRUD, routing, persistence, recovery):
 7. Putting Tone synths or Transport event ids in React state or `localStorage`.
 8. Assuming HMR applied new files — restart dev server when behavior diverges from source.
 9. Custom left-nav studio blocks instead of shell `nav-item` — breaks collapsed icon-only layout and font consistency.
+10. Expecting shell-level or browser Back leave confirm — only **All projects** and nav **Projects** use `routing/leaveGuard`; refresh guard is stretch (`beforeunload`).
 
 ---
 

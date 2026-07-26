@@ -26,27 +26,35 @@ src/apps/music-creator/
 │   ├── projectUtils.ts       # duplicate, rename helpers (M2 phase 2.3)
 │   ├── sortProjects.ts       # Hub list ordering (M2 phase 2.4)
 │   └── formatProject.ts      # updatedAt display for cards (M2 phase 2.5)
-├── components/               # Hub UI (M2)
+├── components/
 │   ├── ProjectCard.tsx
 │   ├── ConfirmDeleteDialog.tsx
-│   ├── ConfirmResetStorageDialog.tsx
-│   ├── StorageRecoveryPanel.tsx
-│   ├── LoadWarningsBanner.tsx
-│   └── LoadingPanel.tsx
+│   ├── TransportBar.tsx      # Studio toolbar (M3 phase 3.1)
+│   ├── StepCell.tsx          # Sequencer button cell (M3 phase 3.2)
+│   ├── DrumSequencer.tsx     # 4×16 drum grid (M3 phase 3.2)
+│   ├── MelodyGrid.tsx        # 8×16 monophonic melody (M3 phase 3.3)
+│   ├── MuteToggle.tsx        # Per-track mute button (M3 phase 3.4)
+│   ├── ConfirmLeaveStudioDialog.tsx  # Unsaved leave confirm (M3 phase 3.5)
+│   └── storage/              # Load/recovery UI (pairs with storage/ module)
+│       ├── ConfirmResetStorageDialog.tsx
+│       ├── StorageRecoveryPanel.tsx
+│       ├── LoadWarningsBanner.tsx
+│       └── LoadingPanel.tsx
 ├── storage/                  # load/save/validate/migrate (M2 phase 2.2)
 │   ├── storage.ts
 │   ├── migrate.ts
 │   ├── validate.ts
 │   └── *.test.ts             # Vitest (M2 phase 2.3)
 ├── routing/
-│   └── projectRoute.ts       # Session registry + store-backed id lookup (M2)
+│   ├── projectRoute.ts       # Session registry + store-backed id lookup (M2)
+│   └── leaveGuard.ts         # Dirty leave confirm for app-controlled routes (M3 phase 3.5)
 ├── ARCHITECTURE.md           # This file
 ├── AGENTS.md                 # Dev conventions
 ├── MusicCreatorContent.tsx   # Router + store owner (load, CRUD, recovery)
 ├── MusicCreatorNav.tsx       # Left nav — Projects + studio context
 └── views/
     ├── ProjectHub.tsx        # Hub layout + state orchestration
-    └── Studio.tsx            # Unified workspace (placeholder)
+    └── Studio.tsx            # Unified workspace — workingCopy + transport (M3)
 ```
 
 ---
@@ -139,9 +147,73 @@ Studio shows `LoadingPanel` until store is ready on refresh/deep link.
 
 ---
 
-## Level 9+ — Planned (Milestone 3+)
+## Level 9 — Studio transport shell (M3 phase 3.1)
 
-- Milestone 3: Sequencer UI, transport bar, explicit Studio save
+Studio loads the URL project into **`workingCopy`** (React state) via `structuredClone` of the saved `MusicProject`. Edits stay in memory until explicit Save (wired in phase 3.5).
+
+| State | Owner | Notes |
+| ----- | ----- | ----- |
+| `workingCopy` | Studio | Clone of store project on mount / id change |
+| `isDirty` | Studio | Set on name/tempo/drum/melody/mute edit; cleared on Save (later) |
+| Persisted project | `localStorage` | Unchanged until Save |
+
+`TransportBar`: disabled Play/Stop (M4), name input, tempo range, Save button, dirty indicator (`Saved` / `Unsaved changes`). Sample-preview route uses an in-memory blank project; Save stays disabled.
+
+---
+
+## Level 10 — Drum sequencer (M3 phase 3.2)
+
+| Component | Role |
+| --------- | ---- |
+| `StepCell` | Native `<button type="button">` per step — `aria-label`, `aria-pressed`, `:focus-visible` |
+| `DrumSequencer` | 4 lanes × 16 steps; reads `workingCopy.drums`, calls `onToggleStep(trackId, stepIndex)` |
+
+Toggling a cell flips `workingCopy.drums[trackId][stepIndex]` and sets `isDirty`. Lane display names live in `constants/music.ts` (`DRUM_TRACK_LABELS`).
+
+---
+
+## Level 11 — Melody grid (M3 phase 3.3)
+
+| Component | Role |
+| --------- | ---- |
+| `MelodyGrid` | 8 pitch rows × 16 steps; reads `workingCopy.melody`, calls `onToggleNote(rowIndex, stepIndex)` |
+
+**Monophonic rule:** `melody[stepIndex]` is one MIDI number or `null`. Clicking a cell sets that pitch for the step; clicking the lit cell again clears it; choosing another row in the same column replaces the note. Row order and MIDI values: `MELODY_SCALE_MIDI` / `MELODY_NOTE_LABELS` in `constants/music.ts`. The grid renders **high pitches at the top** (piano-roll style). Drum and melody grids share flexible step columns (`minmax(step-min, 1fr)`) and the same label width on two full-width grids inside `.music-creator-sequencer-stack`, so step columns align and grow on wide viewports without breakpoint rules. Reuses `StepCell` from the drum grid.
+
+---
+
+## Level 12 — Track mutes (M3 phase 3.4)
+
+| Piece | Role |
+| ----- | ---- |
+| `MuteToggle` | Native `M` button — `aria-pressed` when muted; label names the track |
+| `DrumSequencer` | One mute per drum lane in the label column |
+| `MelodyGrid` | Melody mute beside section title |
+| `Studio.handleMuteToggle` | Flips `workingCopy.mutes[targetId]` and sets `isDirty` |
+
+**Semantics:** `mutes[id] === true` means silenced at playback (wired in M4 `buildSchedule`). Grids stay editable while muted. Mute state persists on Studio Save. Display names: `MUTE_TARGET_LABELS` in `constants/music.ts`.
+
+---
+
+## Level 13 — Explicit Save and leave confirm (M3 phase 3.5) — **Milestone 3 complete**
+
+| Piece | Role |
+| ----- | ---- |
+| `TransportBar` Save | Calls `onSaveProject(workingCopy)` → router `saveStore` |
+| `commitStudioProject` | Trim name, clone body, touch `updatedAt` before write |
+| `ConfirmLeaveStudioDialog` | Stay / Leave without saving when `isDirty` |
+| `routing/leaveGuard.ts` | Studio registers guard; nav **Projects** and **All projects** call `tryLeaveStudio` |
+
+**Save flow:** `MusicCreatorContent.handleSaveStudioProject` merges `workingCopy` into envelope → `saveStore` → `refreshStore` → Studio `savedProject` prop updates → `isDirty` clears.
+
+**Save failure:** Inline error banner in Studio; `workingCopy` retained; remains dirty.
+
+**Leave guard scope:** App-controlled only (**All projects**, left nav **Projects**). **Not** browser Back/Forward, shell Home, other app cards, or refresh (stretch: generic `beforeunload` when dirty — post-MVP).
+
+---
+
+## Level 14+ — Planned (M4+)
+
 - Milestone 4: Tone.js audio engine and playhead
 - Milestone 5: QA audit, optional polish
 

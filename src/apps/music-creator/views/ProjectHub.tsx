@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
-import { ConfirmResetStorageDialog } from "../components/ConfirmResetStorageDialog";
-import { LoadWarningsBanner } from "../components/LoadWarningsBanner";
-import { LoadingPanel } from "../components/LoadingPanel";
 import { ProjectCard } from "../components/ProjectCard";
-import { StorageRecoveryPanel } from "../components/StorageRecoveryPanel";
+import { ConfirmResetStorageDialog } from "../components/storage/ConfirmResetStorageDialog";
+import { LoadWarningsBanner } from "../components/storage/LoadWarningsBanner";
+import { LoadingPanel } from "../components/storage/LoadingPanel";
+import { StorageRecoveryPanel } from "../components/storage/StorageRecoveryPanel";
 import { sortProjectsByUpdatedAt } from "../project/sortProjects";
 import type { MusicProject, ProjectLoadWarning, StorageErrorCode } from "../types";
 
@@ -60,6 +60,7 @@ export function ProjectHub({
   // Disable create + card actions while loading or when storage cannot be read at all.
   const actionsDisabled = isLoading || loadError !== null;
 
+  // loadError = fatal read; actionError = failed write (create/rename/duplicate/delete).
   return (
     <div
       className="music-creator-page music-creator-hub"

@@ -1,4 +1,4 @@
-import type { ProjectLoadWarning } from "../types";
+import type { ProjectLoadWarning } from "../../types";
 
 export interface LoadWarningsBannerProps {
   warnings: ProjectLoadWarning[];
