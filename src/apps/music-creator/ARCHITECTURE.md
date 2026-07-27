@@ -48,6 +48,12 @@ src/apps/music-creator/
 ├── routing/
 │   ├── projectRoute.ts       # Session registry + store-backed id lookup (M2)
 │   └── leaveGuard.ts         # Dirty leave confirm for app-controlled routes (M3 phase 3.5)
+├── audio/                    # Tone.js (M4)
+│   ├── drumSynths.ts         # Four-lane drum kit factory (phase 4.1)
+│   ├── melodySynth.ts        # Monophonic melody Synth factory (phase 4.1)
+│   ├── schedulePattern.ts    # Pure buildSchedule (phase 4.2)
+│   ├── schedulePattern.test.ts
+│   └── audioEngine.ts        # load / play / stop / dispose (phase 4.3)
 ├── ARCHITECTURE.md           # This file
 ├── AGENTS.md                 # Dev conventions
 ├── MusicCreatorContent.tsx   # Router + store owner (load, CRUD, recovery)
@@ -149,15 +155,16 @@ Studio shows `LoadingPanel` until store is ready on refresh/deep link.
 
 ## Level 9 — Studio transport shell (M3 phase 3.1)
 
-Studio loads the URL project into **`workingCopy`** (React state) via `structuredClone` of the saved `MusicProject`. Edits stay in memory until explicit Save (wired in phase 3.5).
+Studio loads the URL project into **`workingCopy`** (React state) via `structuredClone` of the saved `MusicProject`. Edits stay in memory until explicit Save.
 
 | State | Owner | Notes |
 | ----- | ----- | ----- |
 | `workingCopy` | Studio | Clone of store project on mount / id change |
-| `isDirty` | Studio | Set on name/tempo/drum/melody/mute edit; cleared on Save (later) |
+| `isDirty` | Studio | Set on name/tempo/drum/melody/mute edit; cleared after successful Save |
+| `isPlaying`, `currentStep` | Studio | Playback UI; updated from `audioEngine` callbacks (M4.4+) |
 | Persisted project | `localStorage` | Unchanged until Save |
 
-`TransportBar`: disabled Play/Stop (M4), name input, tempo range, Save button, dirty indicator (`Saved` / `Unsaved changes`). Sample-preview route uses an in-memory blank project; Save stays disabled.
+`TransportBar`: Play/Stop, name input, tempo range (live BPM while playing), Save button, dirty indicator. Sample-preview route uses an in-memory blank project; Save stays disabled.
 
 ---
 
@@ -212,9 +219,64 @@ Toggling a cell flips `workingCopy.drums[trackId][stepIndex]` and sets `isDirty`
 
 ---
 
-## Level 14+ — Planned (M4+)
+## Level 14 — Synth factories (M4 phase 4.1)
 
-- Milestone 4: Tone.js audio engine and playhead
+Tone.js is a package dependency. Factories create playable nodes; they do **not** schedule Transport events or talk to React.
+
+| File | Role |
+| ---- | ---- |
+| `audio/drumSynths.ts` | `createDrumSynths()` → kick `MembraneSynth`, snare/open-hat `NoiseSynth`, closed-hat `MetalSynth` + `dispose()` |
+| `audio/melodySynth.ts` | `createMelodySynth()` → monophonic `Tone.Synth` (triangle, short envelope) |
+
+**Ownership:** `audioEngine` calls these from `load()`, keeps nodes across `stop()`, and `dispose()` them on Studio unmount / project id change. Never put Tone nodes in React state or `localStorage`.
+
+---
+
+## Level 15 — Pure schedule (M4 phase 4.2)
+
+| Piece | Role |
+| ----- | ---- |
+| `buildSchedule(project)` | Pure: reads `drums` / `melody` / `mutes` → `ScheduledStep[16]` |
+| `ScheduledStep` | `{ stepIndex, drums: DrumTrackId[], melodyMidi: number \| null }` |
+| `MELODY_NOTE_DURATION` | `"16n"` — shared constant for engine note length |
+
+**Rules:** Muted tracks omitted; rests stay `null`; adjacent identical melody pitches are still two steps (retrigger is the engine’s job). No Tone imports — Vitest covers this module without an AudioContext.
+
+---
+
+## Level 16 — Playback engine (M4 phase 4.3)
+
+Module singleton: `audio/audioEngine.ts` — export `audioEngine` object.
+
+| API | Role |
+| --- | ---- |
+| `load()` | Create drum kit + melody synth if disposed |
+| `play(snapshot, { onStep })` | `Tone.start()` → `buildSchedule` → `scheduleRepeat("16n")` → `Transport.start()` |
+| `stop()` | `Transport.stop()`; `clear()` owned event ids; reset playhead callback to step 0; **keep** synths |
+| `dispose()` | `stop()` + dispose synths; null refs |
+| `updatePattern(source)` | Rebuild `activeSchedule` while playing — live grid/mute edits |
+| `setTempo(bpm)` | `Transport.bpm` — live update while playing |
+| `isPlaying()` | Engine play flag |
+
+**Scheduling:** One owned `scheduleRepeat` every `"16n"`; reads mutable `activeSchedule`. Playhead UI uses `getDraw().schedule()`.
+
+---
+
+## Level 17 — Studio playback wiring (M4 phase 4.4–4.5)
+
+| Piece | Role |
+| ----- | ---- |
+| `Studio.handlePlay` / `handleStop` | `audioEngine.play` / `stop`; single Play/Stop toggle in `TransportBar` |
+| `Studio` effect | `updatePattern` on drums/melody/mute change while playing — live audition |
+| `Studio` unmount / `projectId` | `audioEngine.dispose()` — silences audio when leaving Studio |
+| `StepCell` / grids | Playhead column + bar dividers every 4 steps (`STEPS_PER_BAR`) |
+
+**Live edit rule:** Pattern and mute changes during playback update the engine immediately (next step uses the new schedule). Name/tempo still go through `workingCopy`; tempo also calls `setTempo`.
+
+---
+
+## Level 18+ — Planned
+
 - Milestone 5: QA audit, optional polish
 
-See the approved implementation plan in the repo planning docs for full schema and engine design.
+See the approved implementation plan for M4 acceptance criteria.

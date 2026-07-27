@@ -5,11 +5,15 @@ export interface TransportBarProps {
   tempo: number;
   /** True when workingCopy differs from last saved state — drives Save affordance */
   isDirty: boolean;
+  /** Transport running — toggles Play vs Stop icon (M4) */
+  isPlaying: boolean;
   onNameChange: (name: string) => void;
   onTempoChange: (tempo: number) => void;
+  /** Single transport control — Studio starts or stops audioEngine */
+  onTogglePlayback: () => void;
   /** Wired by Studio — persists workingCopy via router saveStore (phase 3.5) */
   onSave: () => void;
-  /** When true, Save does nothing useful yet (3.1) or storage is unavailable */
+  /** When true, Save stays disabled (sample-preview route — not persisted) */
   saveDisabled?: boolean;
 }
 
@@ -30,15 +34,16 @@ function StopIcon() {
 }
 
 /**
- * Studio transport toolbar — playback chrome lands in M4; phase 3.1 ships
- * name/tempo editors, explicit Save, and a dirty indicator without audio.
+ * Studio transport toolbar — one Play/Stop toggle plus name/tempo/Save (M4).
  */
 export function TransportBar({
   name,
   tempo,
   isDirty,
+  isPlaying,
   onNameChange,
   onTempoChange,
+  onTogglePlayback,
   onSave,
   saveDisabled = false,
 }: TransportBarProps) {
@@ -55,20 +60,11 @@ export function TransportBar({
         <button
           type="button"
           className="music-creator-btn music-creator-btn-secondary music-creator-transport-btn"
-          disabled
-          aria-label="Play (available in a later milestone)"
+          aria-label={isPlaying ? "Stop playback" : "Play pattern"}
+          onClick={onTogglePlayback}
         >
-          <PlayIcon />
-          <span className="music-creator-transport-btn-label">Play</span>
-        </button>
-        <button
-          type="button"
-          className="music-creator-btn music-creator-btn-secondary music-creator-transport-btn"
-          disabled
-          aria-label="Stop (available in a later milestone)"
-        >
-          <StopIcon />
-          <span className="music-creator-transport-btn-label">Stop</span>
+          {isPlaying ? <StopIcon /> : <PlayIcon />}
+          <span className="music-creator-transport-btn-label">{isPlaying ? "Stop" : "Play"}</span>
         </button>
       </div>
 

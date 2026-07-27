@@ -22,14 +22,15 @@ Update this file when a milestone phase ships new conventions or verification st
 
 | Phase | Status | Scope |
 | ----- | ------ | ----- |
-| **M2** | Complete | Persistence, hub CRUD, recovery UX, Vitest (30 tests) |
-| **3.1** | Complete | `TransportBar`, Studio `workingCopy`, dirty indicator (Save stub) |
-| **3.2** | Complete | `StepCell`, `DrumSequencer` (4×16), drum edits → `isDirty` |
-| **3.3** | Complete | `MelodyGrid` (8×16 monophonic), melody edits → `isDirty` |
-| **3.4** | Complete | `MuteToggle` per track, `workingCopy.mutes` → `isDirty` |
-| **3.5** | Complete | Functional Save, leave confirm, `leaveGuard` for nav |
-| **M3** | **Complete** | Studio sequencer UI (silent) — ready for M4 audio |
-| **M4+** | Not started | Tone.js audio |
+| **M2** | Complete | Persistence, hub CRUD, recovery UX, Vitest |
+| **M3** | Complete | Studio sequencer UI (silent), explicit Save, leave guard |
+| **4.1** | Complete | `tone` dep; `audio/drumSynths.ts`, `audio/melodySynth.ts` |
+| **4.2** | Complete | `audio/schedulePattern.ts` + `buildSchedule` Vitest |
+| **4.3** | Complete | `audio/audioEngine.ts` — load, play, stop, dispose, setTempo |
+| **4.4** | Complete | Studio Play/Stop toggle, playhead, live BPM, live pattern edits |
+| **4.5** | **Complete** | `dispose()` on Studio unmount / project change |
+| **M4** | **Complete** | Tone.js playback — ready for M5 QA |
+| **M5** | Not started | QA audit, optional polish |
 
 Do **not** add files from later phases until that phase starts (see [Milestone boundaries](#milestone-boundaries)).
 
@@ -61,6 +62,8 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 **Especially comment:**
 
 - **Router and hub** (`MusicCreatorContent`, `ProjectHub`) — state variables, render branches, who owns persistence vs presentation
+- **Studio** (`workingCopy`, dirty/Save, leave guard) — what lives in React vs disk
+- **Audio** (`audio/*`) — factories vs engine ownership; `stop()` keeps synths, `dispose()` destroys them; never in React state
 - **Timing / ordering** (e.g. `storeReady` before route guard, load does not rewrite disk)
 - **Multi-step flows** (create → save → navigate; repair vs reset)
 - **Intentional limitations** (sample-preview not persisted, shell leave without confirm)
@@ -136,12 +139,15 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 | Pure helper tests | Colocated `**/*.test.ts` (phase 2.3+) |
 | Studio URL guards (interim) | `routing/projectRoute.ts` |
 | Studio dirty leave guard | `routing/leaveGuard.ts` |
+| Drum / melody synth factories | `audio/drumSynths.ts`, `audio/melodySynth.ts` (M4 phase 4.1) |
+| Pure playback schedule | `audio/schedulePattern.ts` → `buildSchedule` (M4 phase 4.2) |
+| Playback engine singleton | `audio/audioEngine.ts` (M4 phase 4.3) |
 | Router | `MusicCreatorContent.tsx` |
 | Hub / Studio views | `views/` |
-| Shared UI | `components/` (when milestone needs them) |
-| Audio | `audio/` (M4 only) |
+| Shared UI | `components/` |
+| Audio engine | `audio/audioEngine.ts` (4.3+) |
 
-Add folders in the milestone that needs them — do not pre-create empty `storage/`, `audio/`, or `components/` trees.
+Add modules in the phase that needs them — do not pre-create empty trees or later-phase files early.
 
 ---
 
@@ -173,10 +179,10 @@ Never throw from storage into React render. Never silently catch write failures.
 
 | Phase | Do not add yet |
 | ----- | -------------- |
-| Before 4.x | `tone` dependency, `audio/` |
+| Before 4.5 | `dispose()` on Studio unmount / project id change |
 | MVP | App-local Zustand, command bus, `headerItems`, autosave, `Transport.cancel()` |
 
-(Milestone 3 complete. M4 adds Tone.js playback.)
+(Milestone 4 complete.)
 
 ---
 
@@ -191,7 +197,7 @@ Never throw from storage into React render. Never silently catch write failures.
 
 ## Verification checklists
 
-Tick when manually verified. **Milestone 2** is complete — keep one sign-off block plus edge-case recipes below; per-phase 2.x lists are retired (history lives in git / plan).
+Tick when **you** have manually verified (agents leave these unchecked — do not pre-tick). **Milestone 2** is complete — keep one sign-off block plus edge-case recipes below; per-phase 2.x lists are retired (history lives in git / plan).
 
 ### Milestone 2 — sign-off
 
@@ -213,44 +219,16 @@ Core flows (hub CRUD, routing, persistence, recovery):
 
 **Invalid project on disk** — add `"bad-id": { "name": "broken" }` inside `projects`, reload → warning banner → valid cards still shown → **Remove invalid from storage** → `bad-id` gone from disk.
 
-### Studio (M3) — phase 3.1
+### Milestone 3 — sign-off
 
-- [x] Open saved project in Studio — name/tempo controls in transport toolbar; Play/Stop disabled
-- [x] Edit name or tempo — dirty indicator shows "Unsaved changes"; Save enables (sample-preview: Save disabled)
-- [x] `npm run check` and `npm test` (music-creator) pass
+Studio sequencer UI (silent) — per-phase 3.x lists retired (history in git / plan).
 
-### Studio (M3) — phase 3.2
-
-- [x] Open saved project — 4×16 drum grid with lane labels and step numbers 1–16
-- [x] Click a drum cell — toggles on/off (accent fill when on); transport shows **Unsaved changes**; Save **button** enables
-- [x] Tab to a cell — `:focus-visible` ring; Space toggles via native button behavior
-- [x] Inspect a cell in devtools a11y tree — native `button`, `aria-pressed` true/false, label like `Kick, step 3, on`
-- [x] `npm run check` and `npm test` (music-creator) pass
-
-### Studio (M3) — phase 3.3
-
-- [x] Open saved project — 8×16 melody grid with pitch labels (C4–C5) and step numbers 1–16
-- [x] Click a pitch in a column — cell lights; only one row active per column (monophonic)
-- [x] Click the lit cell again — clears to rest (no row active in that column)
-- [x] Click a different pitch in the same column — previous cell clears, new pitch lights
-- [x] Melody edit sets **Unsaved changes** and enables Save **button** (still no disk write until 3.5)
-- [x] Tab / Space on a melody cell — same a11y behavior as drum cells (`aria-pressed`, focus ring)
-- [x] `npm run check` and `npm test` (music-creator) pass
-
-### Studio (M3) — phase 3.4
-
-- [x] Each drum lane has an **M** mute button beside the lane name; Melody section has **M** beside the title
-- [x] Click **M** — button shows muted styling (`aria-pressed` true); inactive step cells dim slightly; pattern cells still editable
-- [x] Click **M** again — unmutes; mute change sets **Unsaved changes** and enables Save **button**
-- [x] `npm run check` and `npm test` (music-creator) pass
-
-### Studio (M3) — phase 3.5 / milestone sign-off
-
-- [x] Save writes pattern/name/tempo/mutes to `localStorage`; refresh restores state; dirty indicator returns to **Saved**
-- [x] Save failure shows banner; project stays dirty (stub quota via DevTools optional)
-- [x] **All projects** or left nav **Projects** with dirty state → leave confirm; **Stay** keeps edits; **Leave** discards
-- [x] Clean project navigates without confirm
-- [x] Browser Back / refresh / shell **Applications** or **Settings**: no custom confirm (known limitations)
+- [x] Transport: name/tempo editors; Play/Stop disabled; dirty indicator; sample-preview Save disabled
+- [x] Drums 4×16 + melody 8×16 (monophonic); native button cells with `aria-pressed` / focus ring
+- [x] Per-track mute toggles; pattern stays editable while muted; mute → dirty
+- [x] Explicit Save writes pattern/name/tempo/mutes; refresh restores; dirty clears; Save failure keeps dirty + banner
+- [x] Leave confirm on **All projects** / nav **Projects** when dirty; Stay keeps edits; Leave discards
+- [x] Clean project navigates without confirm; browser Back / refresh / shell Home: no custom confirm
 - [x] `npm run check` and `npm test` (music-creator) pass
 
 **Stretch (post-MVP):** `beforeunload` when dirty — generic browser prompt on refresh/tab close only.
@@ -270,9 +248,38 @@ Core flows (hub CRUD, routing, persistence, recovery):
 3. Click **Save** → red error banner in Studio; project stays **Unsaved changes**; pattern still in the grid.
 4. Restore: `localStorage.setItem = orig` (re-run bind from step 2 if needed) or hard refresh.
 
-### Audio (M4+) — add when implemented
+### Audio (M4) — phase 4.1
 
-- [ ] `dispose()` on Studio unmount; no `Transport.cancel()` in codebase
+- [x] `tone` in `package.json` / lockfile; Play/Stop still disabled in Studio
+- [x] `audio/drumSynths.ts` and `audio/melodySynth.ts` exist (no audible path yet — optional skim)
+
+### Audio (M4) — phase 4.2
+
+- [x] `npm run check` and `npm test` (music-creator) pass — includes `buildSchedule` tests
+
+### Audio (M4) — phase 4.3
+
+- [x] `audio/audioEngine.ts` exports `load`, `play`, `stop`, `dispose`, `setTempo`, `isPlaying`
+- [x] Play/Stop still disabled in Studio (audible test waits for 4.4)
+- [x] `npm run check` and `npm test` (music-creator) pass
+- [x] Grep: no `Transport.cancel()` in app code (only docs/comments)
+
+### Audio (M4) — phase 4.4
+
+- [x] Open Studio — paint pattern; **Play** toggle starts audio; toggle again **Stop**
+- [x] Playhead column + bar dividers every 4 steps visible while playing
+- [x] Edit grid/mutes while playing — hear changes on upcoming steps
+- [x] Tempo slider works live during playback
+- [x] Hi-hat lane labels wrap (not truncated)
+
+### Milestone 4 — sign-off (4.5)
+
+- [x] Leave Studio (All projects, browser back, another app) — audio stops immediately
+- [x] Switch studio project URL — no leaked audio from previous project
+- [x] Stop then Play reuses synths (no full navigation required)
+- [x] Kick/snare/open-hat distinguishable; kick level acceptable
+- [x] `npm run check` and `npm test` (music-creator) pass
+- [x] No `Transport.cancel()` in app code
 
 ---
 

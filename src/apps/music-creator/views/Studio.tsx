@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { audioEngine } from "../audio/audioEngine";
 import { ConfirmLeaveStudioDialog } from "../components/ConfirmLeaveStudioDialog";
 import { DrumSequencer } from "../components/DrumSequencer";
 import { MelodyGrid } from "../components/MelodyGrid";
@@ -27,6 +28,10 @@ export interface StudioProps {
  *
  * Router passes `savedProject` when the URL id exists in localStorage.
  * Edits live in `workingCopy` until Save (explicit — hub rename still saves immediately).
+ *
+ * Playback (M4): Studio owns `isPlaying` / `currentStep` React state; `audioEngine`
+ * owns Tone nodes and Transport schedule. Pattern/mute edits during playback call
+ * `audioEngine.updatePattern` so the grid stays audible while playing.
  */
 export function Studio({
   projectId,
@@ -44,9 +49,16 @@ export function Studio({
   const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  // Playback UI — engine callbacks update these; synths stay in audioEngine module
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentStep, setCurrentStep] = useState<number | null>(null);
 
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  /** Ignores engine onStep(0) fired during stop — playhead hides when not playing */
+  const playbackActiveRef = useRef(false);
 
   // When parent refreshes store after Save (or project id changes), sync from disk.
   useEffect(() => {
@@ -54,6 +66,31 @@ export function Studio({
     setIsDirty(false);
     setSaveError(null);
   }, [projectId, savedProject]);
+
+  // Full teardown when switching projects (4.5)
+  useEffect(() => {
+    playbackActiveRef.current = false;
+    audioEngine.dispose();
+    setIsPlaying(false);
+    setCurrentStep(null);
+  }, [projectId]);
+
+  // Leaving Studio (hub, browser back, another app) — silence audio and free synths
+  useEffect(() => {
+    return () => {
+      audioEngine.dispose();
+    };
+  }, []);
+
+  // Live pattern — push grid/mute edits to the engine while Transport runs
+  useEffect(() => {
+    if (!isPlaying) return;
+    audioEngine.updatePattern({
+      drums: workingCopy.drums,
+      melody: workingCopy.melody,
+      mutes: workingCopy.mutes,
+    });
+  }, [isPlaying, workingCopy.drums, workingCopy.melody, workingCopy.mutes]);
 
   const markDirty = useCallback((updater: (prev: MusicProject) => MusicProject) => {
     setWorkingCopy((prev) => updater(prev));
@@ -72,9 +109,52 @@ export function Studio({
     (tempo: number) => {
       const clamped = Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, tempo));
       markDirty((prev) => ({ ...prev, tempo: clamped }));
+      // Live BPM — Transport schedule stays; only step rate changes (M4)
+      if (isPlayingRef.current) {
+        audioEngine.setTempo(clamped);
+      }
     },
     [markDirty],
   );
+
+  /**
+   * Start playback from the current workingCopy. Pattern edits while playing
+   * flow through updatePattern (see effect above).
+   */
+  const handlePlay = useCallback(async () => {
+    playbackActiveRef.current = true;
+    setIsPlaying(true);
+
+    try {
+      const snapshot = structuredClone(workingCopy);
+      await audioEngine.play(snapshot, {
+        onStep: (stepIndex) => {
+          if (playbackActiveRef.current) {
+            setCurrentStep(stepIndex);
+          }
+        },
+      });
+    } catch {
+      playbackActiveRef.current = false;
+      setIsPlaying(false);
+      setCurrentStep(null);
+    }
+  }, [workingCopy]);
+
+  const handleStop = useCallback(() => {
+    playbackActiveRef.current = false;
+    audioEngine.stop();
+    setIsPlaying(false);
+    setCurrentStep(null);
+  }, []);
+
+  const handleTogglePlayback = useCallback(() => {
+    if (isPlayingRef.current) {
+      handleStop();
+      return;
+    }
+    void handlePlay();
+  }, [handlePlay, handleStop]);
 
   /** Toggle one drum cell — clones the lane array so React sees an immutable update */
   const handleDrumToggle = useCallback(
@@ -209,8 +289,10 @@ export function Studio({
           name={workingCopy.name}
           tempo={workingCopy.tempo}
           isDirty={isDirty}
+          isPlaying={isPlaying}
           onNameChange={handleNameChange}
           onTempoChange={handleTempoChange}
+          onTogglePlayback={handleTogglePlayback}
           onSave={handleSave}
           saveDisabled={isSamplePreview}
         />
@@ -219,6 +301,7 @@ export function Studio({
           <DrumSequencer
             pattern={workingCopy.drums}
             mutes={workingCopy.mutes}
+            currentStep={currentStep}
             onToggleStep={handleDrumToggle}
             onToggleMute={(trackId) => handleMuteToggle(trackId)}
           />
@@ -226,6 +309,7 @@ export function Studio({
           <MelodyGrid
             pattern={workingCopy.melody}
             isMelodyMuted={workingCopy.mutes.melody}
+            currentStep={currentStep}
             onToggleNote={handleMelodyToggle}
             onToggleMelodyMute={() => handleMuteToggle("melody")}
           />

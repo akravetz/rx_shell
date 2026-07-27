@@ -1,4 +1,4 @@
-import { DRUM_TRACK_IDS, DRUM_TRACK_LABELS, STEPS } from "../constants";
+import { DRUM_TRACK_IDS, DRUM_TRACK_LABELS, isBarEnd, MUTE_TARGET_LABELS, STEPS } from "../constants";
 import type { DrumPattern, DrumTrackId } from "../types";
 import { MuteToggle } from "./MuteToggle";
 import { StepCell } from "./StepCell";
@@ -8,6 +8,8 @@ export interface DrumSequencerProps {
   pattern: DrumPattern;
   /** Per-lane mute flags from workingCopy.mutes (true = muted) */
   mutes: Record<DrumTrackId, boolean>;
+  /** Active transport step (0–15), or null when stopped — playhead column highlight */
+  currentStep: number | null;
   onToggleStep: (trackId: DrumTrackId, stepIndex: number) => void;
   onToggleMute: (trackId: DrumTrackId) => void;
 }
@@ -23,7 +25,13 @@ function drumStepAriaLabel(trackId: DrumTrackId, stepIndex: number, isActive: bo
  * Four-lane × 16-step drum grid. Each cell toggles one boolean in workingCopy.drums
  * via the parent — Studio owns persistence and dirty state, not this component.
  */
-export function DrumSequencer({ pattern, mutes, onToggleStep, onToggleMute }: DrumSequencerProps) {
+export function DrumSequencer({
+  pattern,
+  mutes,
+  currentStep,
+  onToggleStep,
+  onToggleMute,
+}: DrumSequencerProps) {
   const stepIndices = Array.from({ length: STEPS }, (_, index) => index);
 
   return (
@@ -42,7 +50,13 @@ export function DrumSequencer({ pattern, mutes, onToggleStep, onToggleMute }: Dr
           {stepIndices.map((stepIndex) => (
             <span
               key={`header-${stepIndex}`}
-              className="music-creator-sequencer-step-header"
+              className={[
+                "music-creator-sequencer-step-header",
+                currentStep === stepIndex ? "music-creator-sequencer-step-header--playhead" : "",
+                isBarEnd(stepIndex) ? "music-creator-sequencer-step-header--bar-end" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               aria-hidden="true"
             >
               {stepIndex + 1}
@@ -54,34 +68,36 @@ export function DrumSequencer({ pattern, mutes, onToggleStep, onToggleMute }: Dr
           const isMuted = mutes[trackId];
           const laneLabel = DRUM_TRACK_LABELS[trackId];
           return (
-          <div
-            key={trackId}
-            className={
-              isMuted
-                ? "music-creator-drum-grid-row music-creator-sequencer-grid-row music-creator-sequencer-grid-row--muted"
-                : "music-creator-drum-grid-row music-creator-sequencer-grid-row"
-            }
-          >
-            <div className="music-creator-drum-track-label-cell">
-              <MuteToggle
-                trackName={laneLabel}
-                isMuted={isMuted}
-                onToggle={() => onToggleMute(trackId)}
-              />
-              <span className="music-creator-drum-track-label">{laneLabel}</span>
-            </div>
-            {stepIndices.map((stepIndex) => {
-              const isActive = pattern[trackId][stepIndex] ?? false;
-              return (
-                <StepCell
-                  key={`${trackId}-${stepIndex}`}
-                  isActive={isActive}
-                  ariaLabel={drumStepAriaLabel(trackId, stepIndex, isActive)}
-                  onToggle={() => onToggleStep(trackId, stepIndex)}
+            <div
+              key={trackId}
+              className={
+                isMuted
+                  ? "music-creator-drum-grid-row music-creator-sequencer-grid-row music-creator-sequencer-grid-row--muted"
+                  : "music-creator-drum-grid-row music-creator-sequencer-grid-row"
+              }
+            >
+              <div className="music-creator-drum-track-label-cell">
+                <MuteToggle
+                  trackName={MUTE_TARGET_LABELS[trackId]}
+                  isMuted={isMuted}
+                  onToggle={() => onToggleMute(trackId)}
                 />
-              );
-            })}
-          </div>
+                <span className="music-creator-drum-track-label">{laneLabel}</span>
+              </div>
+              {stepIndices.map((stepIndex) => {
+                const isActive = pattern[trackId][stepIndex] ?? false;
+                return (
+                  <StepCell
+                    key={`${trackId}-${stepIndex}`}
+                    isActive={isActive}
+                    isPlayhead={currentStep === stepIndex}
+                    isBarEnd={isBarEnd(stepIndex)}
+                    ariaLabel={drumStepAriaLabel(trackId, stepIndex, isActive)}
+                    onToggle={() => onToggleStep(trackId, stepIndex)}
+                  />
+                );
+              })}
+            </div>
           );
         })}
       </div>

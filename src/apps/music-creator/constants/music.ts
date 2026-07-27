@@ -1,8 +1,16 @@
 import type { DrumTrackId, MuteTargetId } from "../types";
 
-/** Sequencer and schema defaults — used by factories, validation, and (later) Studio grids */
+/** Sequencer and schema defaults — used by factories, validation, and Studio grids */
 
 export const STEPS = 16;
+
+/** Visual / musical grouping — 16 steps = 4 bars of 4 sixteenths */
+export const STEPS_PER_BAR = 4;
+
+/** True on the last step of each bar (0-indexed: 3, 7, 11, 15) — bar divider after this column */
+export function isBarEnd(stepIndex: number): boolean {
+  return (stepIndex + 1) % STEPS_PER_BAR === 0;
+}
 
 export const DEFAULT_TEMPO = 120;
 export const DEFAULT_PROJECT_NAME = "Untitled";

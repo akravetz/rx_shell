@@ -1,4 +1,4 @@
-import { MELODY_NOTE_LABELS, MELODY_SCALE_MIDI, STEPS } from "../constants";
+import { isBarEnd, MELODY_NOTE_LABELS, MELODY_SCALE_MIDI, MUTE_TARGET_LABELS, STEPS } from "../constants";
 import type { MelodyPattern } from "../types";
 import { MuteToggle } from "./MuteToggle";
 import { StepCell } from "./StepCell";
@@ -8,6 +8,8 @@ export interface MelodyGridProps {
   pattern: MelodyPattern;
   /** workingCopy.mutes.melody — true silences melody at playback (M4) */
   isMelodyMuted: boolean;
+  /** Active transport step (0–15), or null when stopped — playhead column highlight */
+  currentStep: number | null;
   onToggleNote: (rowIndex: number, stepIndex: number) => void;
   onToggleMelodyMute: () => void;
 }
@@ -27,6 +29,7 @@ function melodyStepAriaLabel(rowIndex: number, stepIndex: number, isActive: bool
 export function MelodyGrid({
   pattern,
   isMelodyMuted,
+  currentStep,
   onToggleNote,
   onToggleMelodyMute,
 }: MelodyGridProps) {
@@ -45,7 +48,7 @@ export function MelodyGrid({
           Melody
         </h2>
         <MuteToggle
-          trackName="Melody"
+          trackName={MUTE_TARGET_LABELS.melody}
           isMuted={isMelodyMuted}
           onToggle={onToggleMelodyMute}
         />
@@ -70,7 +73,13 @@ export function MelodyGrid({
           {stepIndices.map((stepIndex) => (
             <span
               key={`melody-header-${stepIndex}`}
-              className="music-creator-sequencer-step-header"
+              className={[
+                "music-creator-sequencer-step-header",
+                currentStep === stepIndex ? "music-creator-sequencer-step-header--playhead" : "",
+                isBarEnd(stepIndex) ? "music-creator-sequencer-step-header--bar-end" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               aria-hidden="true"
             >
               {stepIndex + 1}
@@ -91,6 +100,8 @@ export function MelodyGrid({
                 <StepCell
                   key={`${rowIndex}-${stepIndex}`}
                   isActive={isActive}
+                  isPlayhead={currentStep === stepIndex}
+                  isBarEnd={isBarEnd(stepIndex)}
                   ariaLabel={melodyStepAriaLabel(rowIndex, stepIndex, isActive)}
                   onToggle={() => onToggleNote(rowIndex, stepIndex)}
                 />
