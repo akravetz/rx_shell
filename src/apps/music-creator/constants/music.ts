@@ -32,20 +32,63 @@ export const DRUM_TRACK_LABELS: Record<DrumTrackId, string> = {
   hatOpen: "Open hi-hat",
 };
 
-/** C major octave — row order for the 8-row melody grid (C4–C5) */
-export const MELODY_SCALE_MIDI: readonly number[] = [60, 62, 64, 65, 67, 69, 71, 72];
+/** Chromatic melody range — C4 through C5 inclusive (sharps, not flats) */
+export const MELODY_MIDI_MIN = 60;
+export const MELODY_MIDI_MAX = 72;
 
-/** Row labels aligned with MELODY_SCALE_MIDI indices — used by MelodyGrid UI and aria-labels */
-export const MELODY_NOTE_LABELS: readonly string[] = [
-  "C4",
-  "D4",
-  "E4",
-  "F4",
-  "G4",
-  "A4",
-  "B4",
-  "C5",
-];
+const CHROMATIC_NAMES = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+] as const;
+
+/** Pitch classes that map to piano black keys (sharps in this app) */
+const BLACK_KEY_PITCH_CLASSES = new Set([1, 3, 6, 8, 10]);
+
+function midiToSharpLabel(midi: number): string {
+  const pitchClass = ((midi % 12) + 12) % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  return `${CHROMATIC_NAMES[pitchClass]}${octave}`;
+}
+
+/** Row order for the melody grid — low to high MIDI (C4 → C5) */
+export const MELODY_SCALE_MIDI: readonly number[] = Array.from(
+  { length: MELODY_MIDI_MAX - MELODY_MIDI_MIN + 1 },
+  (_, index) => MELODY_MIDI_MIN + index,
+);
+
+/** Row labels aligned with MELODY_SCALE_MIDI — sharps for black-key rows */
+export const MELODY_NOTE_LABELS: readonly string[] = MELODY_SCALE_MIDI.map(midiToSharpLabel);
+
+/** Whether a MIDI note is a black-key row in the grid (C#, D#, F#, G#, A#) */
+export function isBlackKeyMidi(midi: number): boolean {
+  const pitchClass = ((midi % 12) + 12) % 12;
+  return BLACK_KEY_PITCH_CLASSES.has(pitchClass);
+}
+
+/** Row-index helper — indexes MELODY_SCALE_MIDI */
+export function isBlackKeyRow(rowIndex: number): boolean {
+  const midi = MELODY_SCALE_MIDI[rowIndex];
+  return midi !== undefined && isBlackKeyMidi(midi);
+}
+
+/** Validation helper — melody steps must land on a grid row */
+export function isMelodyMidiInRange(midi: number): boolean {
+  return (
+    Number.isInteger(midi) &&
+    midi >= MELODY_MIDI_MIN &&
+    midi <= MELODY_MIDI_MAX
+  );
+}
 
 export const MUTE_TARGET_IDS = [...DRUM_TRACK_IDS, "melody"] as const;
 

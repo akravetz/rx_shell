@@ -621,8 +621,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+.music-creator-step-cell-wrap {
+  width: 100%;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
 .music-creator-step-cell {
   width: 100%;
+  max-width: 100%;
+  flex-shrink: 0;
+  height: auto;
   aspect-ratio: 1;
   min-width: 0;
   padding: 0;
@@ -631,6 +643,17 @@
   background: var(--color-bg-primary);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Melody piano-roll rows — inactive cells only (--active overrides both) */
+.music-creator-step-cell--white-key:not(.music-creator-step-cell--active) {
+  background: color-mix(in srgb, var(--color-bg-primary) 92%, white);
+}
+
+.music-creator-step-cell--black-key:not(.music-creator-step-cell--active) {
+  --music-creator-black-key-fill: color-mix(in srgb, var(--color-bg-primary) 78%, black);
+  background: var(--music-creator-black-key-fill);
+  border-color: var(--music-creator-black-key-fill);
 }
 
 .music-creator-step-cell:hover {
@@ -661,10 +684,31 @@
   font-weight: var(--weight-semibold);
 }
 
-/* Bar grouping — vertical rule after steps 4, 8, 12 (not after the final column) */
-.music-creator-step-cell--bar-end,
+/* Bar grouping — vertical rule centered in the column gap after steps 4, 8, 12 */
+.music-creator-step-cell-wrap--bar-end,
 .music-creator-sequencer-step-header--bar-end {
-  border-right: 2px solid var(--color-border-secondary);
+  position: relative;
+  overflow: visible;
+}
+
+.music-creator-step-cell-wrap--bar-end::after,
+.music-creator-sequencer-step-header--bar-end::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + var(--music-creator-seq-gap) / 2);
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--color-border-secondary);
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+/* Melody — slightly stronger bar lines on lighter white-key rows */
+.music-creator-melody-grid .music-creator-step-cell-wrap--bar-end::after,
+.music-creator-melody-grid .music-creator-sequencer-step-header--bar-end::after {
+  background: color-mix(in srgb, var(--color-border-primary) 55%, var(--color-text-tertiary));
 }
 
 .music-creator-drum-sequencer {
@@ -696,16 +740,68 @@
   white-space: normal;
   overflow: visible;
   overflow-wrap: anywhere;
+  text-align: left;
+}
+
+/* Lane / pitch preview — fills label column; default cursor (not link-like) */
+.music-creator-preview-label {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.music-creator-preview-label--fill {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+
+.music-creator-preview-label:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.music-creator-preview-label:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+.music-creator-preview-label--black-key {
+  color: var(--color-text-secondary);
+}
+
+.music-creator-preview-label--white-key {
+  color: var(--color-text-primary);
 }
 
 .music-creator-drum-track-label-cell {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
+  align-self: stretch;
   gap: var(--space-2);
   width: var(--music-creator-seq-label-width);
   min-width: 0;
   padding-right: var(--space-1);
-  padding-top: var(--space-1);
+}
+
+.music-creator-drum-track-label-cell .music-creator-mute-toggle {
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.music-creator-drum-track-label.music-creator-preview-label--fill {
+  justify-content: flex-start;
+  text-align: left;
 }
 
 /* Melody grid — shares column template with drums via .music-creator-sequencer-grid-row */
@@ -735,14 +831,18 @@
   margin-bottom: var(--space-1);
 }
 
+
 .music-creator-melody-pitch-label {
   width: var(--music-creator-seq-label-width);
+  max-width: var(--music-creator-seq-label-width);
+  align-self: stretch;
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   font-family: var(--font-mono);
-  color: var(--color-text-secondary);
   text-align: right;
+  justify-content: flex-end;
   padding-right: var(--space-2);
+  box-sizing: border-box;
 }
 
 .music-creator-studio-placeholder--compact {

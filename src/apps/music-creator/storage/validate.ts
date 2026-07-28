@@ -1,6 +1,6 @@
 import {
   DRUM_TRACK_IDS,
-  MELODY_SCALE_MIDI,
+  isMelodyMidiInRange,
   MUTE_TARGET_IDS,
   STEPS,
   TEMPO_MAX,
@@ -14,8 +14,6 @@ import type {
   MuteTargetId,
   ProjectLoadWarning,
 } from "../types";
-
-const MELODY_NOTE_SET = new Set(MELODY_SCALE_MIDI);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -59,7 +57,7 @@ function validateMelodyPattern(value: unknown): MelodyPattern | null {
       melody.push(null);
       continue;
     }
-    if (typeof step !== "number" || !MELODY_NOTE_SET.has(step)) return null;
+    if (typeof step !== "number" || !isMelodyMidiInRange(step)) return null;
     melody.push(step);
   }
 

@@ -87,7 +87,7 @@ describe("validateProject", () => {
     }
   });
 
-  it("warns when melody contains a note outside the scale", () => {
+  it("warns when melody contains a note outside the grid range", () => {
     const project = createEmptyProject("proj-melody", {
       now: "2026-07-24T12:00:00.000Z",
     });
@@ -102,11 +102,12 @@ describe("validateProject", () => {
     }
   });
 
-  it("accepts melody notes from the fixed scale", () => {
+  it("accepts melody notes from the chromatic grid", () => {
     const project = createEmptyProject("proj-melody-ok", {
       now: "2026-07-24T12:00:00.000Z",
     });
     project.melody[0] = MELODY_SCALE_MIDI[0];
+    project.melody[1] = MELODY_SCALE_MIDI[1]; // C#4
 
     const result = validateProject("proj-melody-ok", project);
 

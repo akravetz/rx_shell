@@ -16,8 +16,8 @@
  * Never call global `Transport.cancel()` — it removes every app's events on the page.
  */
 
-import { Frequency, getDraw, getTransport, start, type Synth } from "tone";
-import { STEPS } from "../constants";
+import { Frequency, getDraw, getTransport, now, start, type Synth } from "tone";
+import { isMelodyMidiInRange, STEPS } from "../constants";
 import type { DrumTrackId, MusicProject } from "../types";
 import { createDrumSynths, type DrumSynthKit } from "./drumSynths";
 import { createMelodySynth } from "./melodySynth";
@@ -212,5 +212,33 @@ export const audioEngine = {
 
   isPlaying(): boolean {
     return playing;
+  },
+
+  /**
+   * One-shot lane audition — user gesture on a drum label. Does not touch Transport
+   * or the sequencer pattern.
+   */
+  async previewDrum(trackId: DrumTrackId): Promise<void> {
+    await start();
+    ensureSynths();
+    triggerDrum(trackId, now());
+  },
+
+  /**
+   * One-shot pitch audition — user gesture on a melody row label. Does not touch
+   * Transport or the sequencer pattern.
+   */
+  async previewMelody(midi: number): Promise<void> {
+    if (!isMelodyMidiInRange(midi)) return;
+
+    await start();
+    ensureSynths();
+    if (!melodySynth) return;
+
+    melodySynth.triggerAttackRelease(
+      Frequency(midi, "midi").toFrequency(),
+      MELODY_NOTE_DURATION,
+      now(),
+    );
   },
 };

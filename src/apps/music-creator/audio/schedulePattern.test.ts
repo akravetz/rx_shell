@@ -53,7 +53,7 @@ describe("buildSchedule", () => {
     const project = createEmptyProject("sched-melody", {
       now: "2026-07-27T12:00:00.000Z",
     });
-    const note = MELODY_SCALE_MIDI[4]; // G4
+    const note = MELODY_SCALE_MIDI[4]; // E4
     project.melody[3] = note;
     project.melody[4] = note; // adjacent same pitch — still two separate steps
 

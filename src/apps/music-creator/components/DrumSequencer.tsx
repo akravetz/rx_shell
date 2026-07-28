@@ -1,3 +1,4 @@
+import { audioEngine } from "../audio/audioEngine";
 import { DRUM_TRACK_IDS, DRUM_TRACK_LABELS, isBarEnd, MUTE_TARGET_LABELS, STEPS } from "../constants";
 import type { DrumPattern, DrumTrackId } from "../types";
 import { MuteToggle } from "./MuteToggle";
@@ -22,8 +23,7 @@ function drumStepAriaLabel(trackId: DrumTrackId, stepIndex: number, isActive: bo
 }
 
 /**
- * Four-lane × 16-step drum grid. Each cell toggles one boolean in workingCopy.drums
- * via the parent — Studio owns persistence and dirty state, not this component.
+ * Four-lane × 16-step drum grid. Lane names preview the sound without toggling steps.
  */
 export function DrumSequencer({
   pattern,
@@ -33,6 +33,10 @@ export function DrumSequencer({
   onToggleMute,
 }: DrumSequencerProps) {
   const stepIndices = Array.from({ length: STEPS }, (_, index) => index);
+
+  const handlePreviewLane = (trackId: DrumTrackId) => {
+    void audioEngine.previewDrum(trackId);
+  };
 
   return (
     <section
@@ -44,7 +48,6 @@ export function DrumSequencer({
       </h2>
 
       <div className="music-creator-drum-grid" role="group" aria-label="Drum pattern, 4 lanes by 16 steps">
-        {/* Spacer cell — aligns step-number header row with the label column (no styles needed) */}
         <div className="music-creator-drum-grid-row music-creator-sequencer-grid-row music-creator-sequencer-grid-row--header">
           <span aria-hidden="true" />
           {stepIndices.map((stepIndex) => (
@@ -82,7 +85,15 @@ export function DrumSequencer({
                   isMuted={isMuted}
                   onToggle={() => onToggleMute(trackId)}
                 />
-                <span className="music-creator-drum-track-label">{laneLabel}</span>
+                <button
+                  type="button"
+                  className="music-creator-preview-label music-creator-preview-label--fill music-creator-drum-track-label"
+                  aria-label={`Preview ${laneLabel}`}
+                  title={`Preview ${laneLabel}`}
+                  onClick={() => handlePreviewLane(trackId)}
+                >
+                  {laneLabel}
+                </button>
               </div>
               {stepIndices.map((stepIndex) => {
                 const isActive = pattern[trackId][stepIndex] ?? false;
@@ -93,7 +104,10 @@ export function DrumSequencer({
                     isPlayhead={currentStep === stepIndex}
                     isBarEnd={isBarEnd(stepIndex)}
                     ariaLabel={drumStepAriaLabel(trackId, stepIndex, isActive)}
-                    onToggle={() => onToggleStep(trackId, stepIndex)}
+                    onToggle={() => {
+                      void audioEngine.previewDrum(trackId);
+                      onToggleStep(trackId, stepIndex);
+                    }}
                   />
                 );
               })}
