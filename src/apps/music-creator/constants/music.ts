@@ -7,9 +7,9 @@ export const STEPS = 16;
 /** Visual / musical grouping — 16 steps = 4 bars of 4 sixteenths */
 export const STEPS_PER_BAR = 4;
 
-/** True on the last step of each bar (0-indexed: 3, 7, 11, 15) — bar divider after this column */
+/** True on the last step of each bar (0-indexed: 3, 7, 11) — bar divider after this column, not after the final step */
 export function isBarEnd(stepIndex: number): boolean {
-  return (stepIndex + 1) % STEPS_PER_BAR === 0;
+  return stepIndex < STEPS - 1 && (stepIndex + 1) % STEPS_PER_BAR === 0;
 }
 
 export const DEFAULT_TEMPO = 120;

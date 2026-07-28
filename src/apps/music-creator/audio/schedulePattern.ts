@@ -3,9 +3,9 @@
  *
  * Ownership:
  * - **Pure data only** — no Tone imports, no Transport, no synth triggers.
- * - `audioEngine.play()` (4.3+) will snapshot `workingCopy`, call `buildSchedule`,
- *   then schedule Tone events from the returned steps.
- * - Studio / React never call this directly in MVP; the engine owns the call site.
+ * - `audioEngine.play()` snapshots on Play; `audioEngine.updatePattern()` rebuilds
+ *   while Transport runs — both call `buildSchedule` from this module.
+ * - Studio / React never call this directly; the engine owns the call site.
  *
  * Semantics (must stay aligned with ARCHITECTURE / plan):
  * - 16 steps; muted tracks contribute nothing

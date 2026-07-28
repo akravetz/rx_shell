@@ -3,7 +3,7 @@ export interface StepCellProps {
   isActive: boolean;
   /** Current transport step column — playhead highlight while playing (M4) */
   isPlayhead?: boolean;
-  /** Right border after every 4th step — 4-bar visual grouping */
+  /** Right border after steps 3, 7, 11 — 4-bar visual grouping (not after the last column) */
   isBarEnd?: boolean;
   /** Full accessible name, e.g. "Kick, step 5, on" */
   ariaLabel: string;

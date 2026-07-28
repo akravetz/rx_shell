@@ -661,7 +661,7 @@
   font-weight: var(--weight-semibold);
 }
 
-/* Bar grouping — vertical rule after every 4th step (4 bars × 4 steps) */
+/* Bar grouping — vertical rule after steps 4, 8, 12 (not after the final column) */
 .music-creator-step-cell--bar-end,
 .music-creator-sequencer-step-header--bar-end {
   border-right: 2px solid var(--color-border-secondary);

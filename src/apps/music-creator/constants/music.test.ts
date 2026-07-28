@@ -7,12 +7,12 @@ describe("isBarEnd", () => {
     expect(isBarEnd(3)).toBe(true);
     expect(isBarEnd(7)).toBe(true);
     expect(isBarEnd(11)).toBe(true);
-    expect(isBarEnd(15)).toBe(true);
   });
 
   it("does not mark other steps", () => {
     expect(isBarEnd(0)).toBe(false);
     expect(isBarEnd(4)).toBe(false);
     expect(isBarEnd(14)).toBe(false);
+    expect(isBarEnd(15)).toBe(false);
   });
 });
