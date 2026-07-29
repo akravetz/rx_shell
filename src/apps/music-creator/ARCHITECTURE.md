@@ -16,7 +16,7 @@ Music Creator is a **browser-based miniature music tool** hosted in AIShell. Use
 
 ```
 src/apps/music-creator/
-├── manifest.tsx              # AppManifest — registers leftNav + mainContent (no headerItems yet)
+├── manifest.tsx              # AppManifest — leftNav + mainContent + headerItems (studio transport)
 ├── music-creator.css         # Namespaced .music-creator-* — grids, transport, hub, focus rings
 ├── types.ts                  # MusicProject, envelope, StorageResult, drum/melody shapes
 ├── constants/
@@ -31,7 +31,7 @@ src/apps/music-creator/
 ├── components/
 │   ├── ProjectCard.tsx       # Hub row — open, inline rename, duplicate, delete
 │   ├── ConfirmDeleteDialog.tsx
-│   ├── TransportBar.tsx      # Studio toolbar — Play/Stop, name, tempo, Save, dirty indicator
+│   ├── TransportBar.tsx      # Shell topbar transport UI (via headerItems)
 │   ├── StepCell.tsx          # Native button cell — aria-pressed, playhead, bar divider
 │   ├── DrumSequencer.tsx     # 4×16 drum grid + per-lane mute
 │   ├── MelodyGrid.tsx        # 8×16 monophonic melody grid + melody mute
@@ -49,7 +49,9 @@ src/apps/music-creator/
 │   └── *.test.ts             # Vitest — load warnings, migrate, validate
 ├── routing/
 │   ├── projectRoute.ts       # sessionStorage registry + isKnownProjectId store lookup
-│   └── leaveGuard.ts         # tryLeaveStudio — dirty guard for app-controlled nav only
+│   ├── leaveGuard.ts         # tryLeaveStudio — dirty guard for app-controlled nav only
+│   ├── studioSession.ts      # Module store — Studio ↔ headerItems bridge (useSyncExternalStore)
+│   └── useDirtyBeforeUnload.ts  # Native refresh/tab-close prompt when dirty
 ├── audio/
 │   ├── drumSynths.ts         # createDrumSynths — four-lane synthesized kit + dispose()
 │   ├── melodySynth.ts        # createMelodySynth — monophonic Tone.Synth factory
@@ -57,6 +59,7 @@ src/apps/music-creator/
 │   ├── schedulePattern.test.ts
 │   └── audioEngine.ts        # Module singleton — load, play, stop, dispose, updatePattern
 ├── MusicCreatorContent.tsx   # Router — store owner, hub CRUD, studio route guards
+├── MusicCreatorHeaderItems.tsx  # Shell topbar transport — studio-only via studioSession
 ├── MusicCreatorNav.tsx       # Left nav — Projects link + studio context (shell nav-item)
 ├── views/
 │   ├── ProjectHub.tsx        # Hub layout — list, empty state, recovery orchestration
@@ -139,17 +142,17 @@ Studio loads the URL project into **`workingCopy`** (`structuredClone` of saved 
 | State | Owner | Notes |
 | ----- | ----- | ----- |
 | `workingCopy` | Studio | Clone on mount / id change |
-| `isDirty` | Studio | Set on edit; cleared after successful Save |
+| `isDirty` | Studio | Derived — `!areStudioEditsEqual(workingCopy, savedBaseline)` |
 | `isPlaying`, `currentStep` | Studio | Playback UI from `audioEngine` callbacks |
 | Persisted project | `localStorage` | Unchanged until Save |
 
 ### Transport & Save
 
-`TransportBar`: Play/Stop toggle, name, tempo (live BPM while playing), Save, dirty indicator. Sample-preview route uses in-memory blank project; Save disabled.
+Transport lives in the **shell topbar** via `headerItems` (`MusicCreatorHeaderItems`), not in the Studio canvas. Studio publishes snapshot + action callbacks through `routing/studioSession.ts` (Arcade-style module store + `useSyncExternalStore`). Controls: Play/Stop toggle, editable project name, tempo (live BPM while playing), Save, dirty indicator. Sample-preview route uses in-memory blank project; Save disabled in header too.
 
 **Save:** `commitStudioProject` → router `saveStore` → `savedProject` prop refresh → `isDirty` clears. Save failure shows inline banner; working copy retained.
 
-**Leave guard:** App-controlled only — **All projects** button and left nav **Projects** via `routing/leaveGuard`. Not browser Back, shell Home, other apps, or refresh (`beforeunload` is post-MVP stretch).
+**Leave guard:** App-controlled nav (**All projects**, left nav **Projects**) uses `routing/leaveGuard` with a custom Stay / Leave dialog. Browser refresh, tab close, and leaving the site use the native `beforeunload` prompt when dirty. Shell app switch / Home still unmounts Studio without confirm (by design).
 
 ### Sequencer UI
 
@@ -164,7 +167,7 @@ Studio loads the URL project into **`workingCopy`** (`structuredClone` of saved 
 
 **Bar dividers:** Vertical rule after steps 4, 8, 12 (indices 3, 7, 11) — not after the final column.
 
-**Dirty tracking (POC):** Toggle-based — flipping a cell on then off still leaves `isDirty` until Save or leave-discard.
+**Dirty tracking:** Compares editable fields (name, tempo, drums, melody, mutes) to the last saved snapshot via `areStudioEditsEqual`. Undoing edits back to the saved state clears dirty and re-enables navigation without a leave confirm.
 
 ---
 
@@ -207,8 +210,8 @@ Tone synth nodes and Transport event ids live in **`audioEngine`** module single
 
 ## Level 7 — MVP complete & stretch
 
-**Shipped (M1–M5):** Hub + Studio routes, persistence, explicit Save, Tone.js playback, QA audit, doc sync.
+**Shipped (M1–M5):** Hub + Studio routes, persistence, explicit Save, Tone.js playback, QA audit, doc sync, shell topbar transport (`headerItems`).
 
-**Post-MVP stretch (not implemented):** autosave, `headerItems`, command bus, `beforeunload` when dirty, document-level Space/Escape shortcuts, arrow-key grid nav, starter template, WAV export, swing.
+**Post-MVP stretch (not implemented):** autosave, command bus, document-level Space/Escape shortcuts, arrow-key grid nav, starter template, WAV export, swing.
 
 See `AGENTS.md` for verification checklists and dev conventions.

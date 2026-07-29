@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { audioEngine } from "../audio/audioEngine";
 import { ConfirmLeaveStudioDialog } from "../components/ConfirmLeaveStudioDialog";
 import { DrumSequencer } from "../components/DrumSequencer";
 import { MelodyGrid } from "../components/MelodyGrid";
-import { TransportBar } from "../components/TransportBar";
 import { DEFAULT_PROJECT_NAME, MELODY_SCALE_MIDI, TEMPO_MAX, TEMPO_MIN } from "../constants";
 import { SAMPLE_PREVIEW_PROJECT_ID } from "../constants/storageMessages";
 import { createEmptyProject } from "../project/createProject";
+import { areStudioEditsEqual } from "../project/projectUtils";
 import { registerStudioLeaveGuard, tryLeaveStudio } from "../routing/leaveGuard";
+import {
+  clearStudioSession,
+  registerStudioSessionActions,
+  setStudioSession,
+} from "../routing/studioSession";
+import { useDirtyBeforeUnload } from "../routing/useDirtyBeforeUnload";
 import type { DrumTrackId, MusicProject, MuteTargetId } from "../types";
 
 export type StudioSaveResult =
@@ -45,8 +51,15 @@ export function Studio({
   const [workingCopy, setWorkingCopy] = useState<MusicProject>(() =>
     resolveInitialWorkingCopy(projectId, savedProject),
   );
-  // isDirty: workingCopy differs from last successful Save / load snapshot
-  const [isDirty, setIsDirty] = useState(false);
+  const savedBaseline = useMemo(
+    () => resolveInitialWorkingCopy(projectId, savedProject),
+    [projectId, savedProject],
+  );
+  // Derived — true when editable fields differ from last saved / load snapshot
+  const isDirty = useMemo(
+    () => !areStudioEditsEqual(workingCopy, savedBaseline),
+    [workingCopy, savedBaseline],
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
   // Playback UI — engine callbacks update these; synths stay in audioEngine module
@@ -63,7 +76,6 @@ export function Studio({
   // When parent refreshes store after Save (or project id changes), sync from disk.
   useEffect(() => {
     setWorkingCopy(resolveInitialWorkingCopy(projectId, savedProject));
-    setIsDirty(false);
     setSaveError(null);
   }, [projectId, savedProject]);
 
@@ -92,29 +104,28 @@ export function Studio({
     });
   }, [isPlaying, workingCopy.drums, workingCopy.melody, workingCopy.mutes]);
 
-  const markDirty = useCallback((updater: (prev: MusicProject) => MusicProject) => {
+  const updateWorkingCopy = useCallback((updater: (prev: MusicProject) => MusicProject) => {
     setWorkingCopy((prev) => updater(prev));
-    setIsDirty(true);
     setSaveError(null);
   }, []);
 
   const handleNameChange = useCallback(
     (name: string) => {
-      markDirty((prev) => ({ ...prev, name }));
+      updateWorkingCopy((prev) => ({ ...prev, name }));
     },
-    [markDirty],
+    [updateWorkingCopy],
   );
 
   const handleTempoChange = useCallback(
     (tempo: number) => {
       const clamped = Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, tempo));
-      markDirty((prev) => ({ ...prev, tempo: clamped }));
+      updateWorkingCopy((prev) => ({ ...prev, tempo: clamped }));
       // Live BPM — Transport schedule stays; only step rate changes (M4)
       if (isPlayingRef.current) {
         audioEngine.setTempo(clamped);
       }
     },
-    [markDirty],
+    [updateWorkingCopy],
   );
 
   /**
@@ -159,7 +170,7 @@ export function Studio({
   /** Toggle one drum cell — clones the lane array so React sees an immutable update */
   const handleDrumToggle = useCallback(
     (trackId: DrumTrackId, stepIndex: number) => {
-      markDirty((prev) => {
+      updateWorkingCopy((prev) => {
         const lane = [...prev.drums[trackId]];
         lane[stepIndex] = !lane[stepIndex];
         return {
@@ -171,7 +182,7 @@ export function Studio({
         };
       });
     },
-    [markDirty],
+    [updateWorkingCopy],
   );
 
   /**
@@ -180,20 +191,20 @@ export function Studio({
    */
   const handleMelodyToggle = useCallback(
     (rowIndex: number, stepIndex: number) => {
-      markDirty((prev) => {
+      updateWorkingCopy((prev) => {
         const melody = [...prev.melody];
         const note = MELODY_SCALE_MIDI[rowIndex];
         melody[stepIndex] = melody[stepIndex] === note ? null : note;
         return { ...prev, melody };
       });
     },
-    [markDirty],
+    [updateWorkingCopy],
   );
 
   /** Flip one entry in workingCopy.mutes — persisted on Save */
   const handleMuteToggle = useCallback(
     (targetId: MuteTargetId) => {
-      markDirty((prev) => ({
+      updateWorkingCopy((prev) => ({
         ...prev,
         mutes: {
           ...prev.mutes,
@@ -201,7 +212,7 @@ export function Studio({
         },
       }));
     },
-    [markDirty],
+    [updateWorkingCopy],
   );
 
   const handleSave = useCallback(() => {
@@ -223,6 +234,33 @@ export function Studio({
     // isDirty clears when parent refreshStore updates savedProject prop
   }, [isSamplePreview, onSaveProject, workingCopy]);
 
+  // Publish transport state to shell topbar (separate React tree via studioSession).
+  useEffect(() => {
+    registerStudioSessionActions({
+      onNameChange: handleNameChange,
+      onTempoChange: handleTempoChange,
+      onTogglePlayback: handleTogglePlayback,
+      onSave: handleSave,
+    });
+    return () => registerStudioSessionActions(null);
+  }, [handleNameChange, handleTempoChange, handleTogglePlayback, handleSave]);
+
+  useEffect(() => {
+    setStudioSession({
+      active: true,
+      projectId,
+      name: workingCopy.name,
+      tempo: workingCopy.tempo,
+      isDirty,
+      isPlaying,
+      saveDisabled: isSamplePreview,
+    });
+  }, [projectId, workingCopy.name, workingCopy.tempo, isDirty, isPlaying, isSamplePreview]);
+
+  useEffect(() => {
+    return () => clearStudioSession();
+  }, []);
+
   const handleBackToProjects = useCallback(() => {
     tryLeaveStudio(onBackToProjects);
   }, [onBackToProjects]);
@@ -235,6 +273,8 @@ export function Studio({
     });
     return () => registerStudioLeaveGuard(null);
   }, []);
+
+  useDirtyBeforeUnload(isDirty);
 
   const displayName = workingCopy.name.trim() || DEFAULT_PROJECT_NAME;
 
@@ -255,18 +295,20 @@ export function Studio({
               All projects
             </button>
             <h1 id="music-creator-studio-heading" className="music-creator-title music-creator-title-sm">
-              {displayName}
+              Studio
             </h1>
           </div>
           <p className="music-creator-muted">
             {isSamplePreview ? (
               <>
-                Sample preview — not saved to storage. Project ID:{" "}
+                Sample preview — not saved to storage. Project:{" "}
+                <strong>{displayName}</strong> · ID{" "}
                 <code className="music-creator-code">{projectId}</code>
               </>
             ) : (
               <>
-                Project ID: <code className="music-creator-code">{projectId}</code>
+                Project: <strong>{displayName}</strong> · ID{" "}
+                <code className="music-creator-code">{projectId}</code>
               </>
             )}
           </p>
@@ -284,18 +326,6 @@ export function Studio({
             </button>
           </div>
         ) : null}
-
-        <TransportBar
-          name={workingCopy.name}
-          tempo={workingCopy.tempo}
-          isDirty={isDirty}
-          isPlaying={isPlaying}
-          onNameChange={handleNameChange}
-          onTempoChange={handleTempoChange}
-          onTogglePlayback={handleTogglePlayback}
-          onSave={handleSave}
-          saveDisabled={isSamplePreview}
-        />
 
         <div className="music-creator-sequencer-stack">
           <DrumSequencer

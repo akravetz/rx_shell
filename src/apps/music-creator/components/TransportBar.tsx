@@ -1,4 +1,92 @@
+import { useEffect, useState } from "react";
 import { TEMPO_MAX, TEMPO_MIN } from "../constants";
+
+function clampTempo(value: number): number {
+  return Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, Math.round(value)));
+}
+
+interface TempoControlsProps {
+  tempo: number;
+  onTempoChange: (tempo: number) => void;
+  sliderId: string;
+  numberId: string;
+}
+
+/** Slider for coarse adjustment + number field for precise BPM entry */
+function TempoControls({ tempo, onTempoChange, sliderId, numberId }: TempoControlsProps) {
+  const [draft, setDraft] = useState(String(tempo));
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraft(String(tempo));
+    }
+  }, [isEditing, tempo]);
+
+  const commitDraft = () => {
+    if (draft.trim() === "") {
+      setIsEditing(false);
+      return;
+    }
+
+    const parsed = Number(draft);
+    if (Number.isFinite(parsed)) {
+      onTempoChange(clampTempo(parsed));
+    }
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="music-creator-transport-tempo-row">
+      <input
+        id={sliderId}
+        type="range"
+        className="music-creator-transport-tempo-slider"
+        min={TEMPO_MIN}
+        max={TEMPO_MAX}
+        step={1}
+        value={tempo}
+        onChange={(event) => onTempoChange(Number(event.target.value))}
+        aria-valuemin={TEMPO_MIN}
+        aria-valuemax={TEMPO_MAX}
+        aria-valuenow={tempo}
+        aria-valuetext={`${tempo} beats per minute`}
+      />
+      <div className="music-creator-transport-tempo-input-wrap">
+        <input
+          id={numberId}
+          type="number"
+          className="music-creator-input music-creator-transport-tempo-number"
+          min={TEMPO_MIN}
+          max={TEMPO_MAX}
+          step={1}
+          inputMode="numeric"
+          value={isEditing ? draft : tempo}
+          onChange={(event) => setDraft(event.target.value)}
+          onFocus={() => {
+            setIsEditing(true);
+            setDraft(String(tempo));
+          }}
+          onBlur={commitDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+            if (event.key === "Escape") {
+              setDraft(String(tempo));
+              setIsEditing(false);
+              event.currentTarget.blur();
+            }
+          }}
+          aria-label={`Tempo in beats per minute (${TEMPO_MIN} to ${TEMPO_MAX})`}
+        />
+        <span className="music-creator-transport-tempo-unit" aria-hidden="true">
+          BPM
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export interface TransportBarProps {
   name: string;
@@ -34,7 +122,7 @@ function StopIcon() {
 }
 
 /**
- * Studio transport toolbar — one Play/Stop toggle plus name/tempo/Save (M4).
+ * Shell topbar transport — Play/Stop, name, tempo, Save (rendered via headerItems).
  */
 export function TransportBar({
   name,
@@ -47,8 +135,9 @@ export function TransportBar({
   onSave,
   saveDisabled = false,
 }: TransportBarProps) {
-  const tempoInputId = "music-creator-transport-tempo";
-  const nameInputId = "music-creator-transport-name";
+  const tempoSliderId = "music-creator-header-tempo-slider";
+  const tempoNumberId = "music-creator-header-tempo-number";
+  const nameInputId = "music-creator-header-name";
 
   return (
     <div
@@ -84,31 +173,15 @@ export function TransportBar({
         </div>
 
         <div className="music-creator-transport-field music-creator-transport-tempo-field">
-          <label className="music-creator-transport-label" htmlFor={tempoInputId}>
+          <label className="music-creator-transport-label" htmlFor={tempoNumberId}>
             Tempo ({TEMPO_MIN}–{TEMPO_MAX} BPM)
           </label>
-          <div className="music-creator-transport-tempo-row">
-            <input
-              id={tempoInputId}
-              type="range"
-              className="music-creator-transport-tempo-slider"
-              min={TEMPO_MIN}
-              max={TEMPO_MAX}
-              step={1}
-              value={tempo}
-              onChange={(event) => onTempoChange(Number(event.target.value))}
-              aria-valuemin={TEMPO_MIN}
-              aria-valuemax={TEMPO_MAX}
-              aria-valuenow={tempo}
-              aria-valuetext={`${tempo} beats per minute`}
-            />
-            <output
-              className="music-creator-transport-tempo-value"
-              htmlFor={tempoInputId}
-            >
-              {tempo} BPM
-            </output>
-          </div>
+          <TempoControls
+            tempo={tempo}
+            onTempoChange={onTempoChange}
+            sliderId={tempoSliderId}
+            numberId={tempoNumberId}
+          />
         </div>
       </div>
 

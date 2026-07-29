@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyProject } from "./createProject";
-import { duplicateProject, renameProject, commitStudioProject } from "./projectUtils";
+import {
+  areStudioEditsEqual,
+  duplicateProject,
+  renameProject,
+  commitStudioProject,
+} from "./projectUtils";
 
 describe("duplicateProject", () => {
   const fixedNow = "2026-07-24T12:00:00.000Z";
@@ -72,5 +77,54 @@ describe("commitStudioProject", () => {
     expect(committed.updatedAt).toBe(fixedNow);
     expect(committed.drums.kick[0]).toBe(true);
     expect(project.name).toBe("  Loop  ");
+  });
+});
+
+describe("areStudioEditsEqual", () => {
+  it("returns true for identical editable fields", () => {
+    const a = createEmptyProject("proj-1");
+    const b = structuredClone(a);
+
+    expect(areStudioEditsEqual(a, b)).toBe(true);
+  });
+
+  it("ignores id and timestamps", () => {
+    const a = createEmptyProject("proj-1", { now: "2026-01-01T00:00:00.000Z" });
+    const b = createEmptyProject("proj-2", { now: "2026-07-01T00:00:00.000Z" });
+    b.name = a.name;
+    b.tempo = a.tempo;
+
+    expect(areStudioEditsEqual(a, b)).toBe(true);
+  });
+
+  it("compares trimmed names", () => {
+    const a = createEmptyProject("proj-1", { name: "Loop" });
+    const b = createEmptyProject("proj-1", { name: "  Loop  " });
+
+    expect(areStudioEditsEqual(a, b)).toBe(true);
+  });
+
+  it("detects pattern, mute, tempo, and name changes", () => {
+    const baseline = createEmptyProject("proj-1");
+    const renamed = { ...baseline, name: "Renamed" };
+    const faster = { ...baseline, tempo: baseline.tempo + 1 };
+    const toggled = structuredClone(baseline);
+    toggled.drums.kick[0] = true;
+    const muted = structuredClone(baseline);
+    muted.mutes.melody = true;
+
+    expect(areStudioEditsEqual(baseline, renamed)).toBe(false);
+    expect(areStudioEditsEqual(baseline, faster)).toBe(false);
+    expect(areStudioEditsEqual(baseline, toggled)).toBe(false);
+    expect(areStudioEditsEqual(baseline, muted)).toBe(false);
+  });
+
+  it("returns true after toggling a cell off again", () => {
+    const baseline = createEmptyProject("proj-1");
+    const edited = structuredClone(baseline);
+    edited.drums.kick[0] = true;
+    edited.drums.kick[0] = false;
+
+    expect(areStudioEditsEqual(baseline, edited)).toBe(true);
   });
 });

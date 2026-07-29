@@ -1,5 +1,6 @@
 import type { AppManifest } from "../../types/app";
 import { MusicCreatorContent } from "./MusicCreatorContent";
+import { MusicCreatorHeaderItems } from "./MusicCreatorHeaderItems";
 import { MusicCreatorNav } from "./MusicCreatorNav";
 
 function MusicCreatorIcon({ size = 18 }: { size?: number }) {
@@ -31,4 +32,5 @@ export const musicCreatorApp: AppManifest = {
 
   leftNav: MusicCreatorNav,
   mainContent: MusicCreatorContent,
+  headerItems: MusicCreatorHeaderItems,
 };

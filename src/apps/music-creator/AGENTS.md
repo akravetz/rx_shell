@@ -25,6 +25,7 @@ Shell-level patterns: [APP_DEVELOPMENT_GUIDE.md](../../APP_DEVELOPMENT_GUIDE.md)
 | **M4** | Complete | Tone.js playback, playhead, live edits, dispose lifecycle |
 | **M5** | Complete | QA audit, doc sync, bar-divider polish |
 | **MVP** | **Complete** | POC ready — stretch goals listed in ARCHITECTURE Level 7 |
+| **Post-MVP** | **Partial** | Shell topbar transport via `headerItems` + `studioSession` (shipped) |
 
 ---
 
@@ -39,7 +40,7 @@ Shell-level patterns: [APP_DEVELOPMENT_GUIDE.md](../../APP_DEVELOPMENT_GUIDE.md)
 
 ### Post-MVP — do not add without explicit scope
 
-App-local Zustand, command bus, `headerItems`, autosave, global `Transport.cancel()`, sample-based drums, WAV export, undo stack.
+App-local Zustand, command bus, autosave, global `Transport.cancel()`, sample-based drums, WAV export, undo stack.
 
 ---
 
@@ -105,7 +106,9 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 | Concern | Owner |
 | ------- | ----- |
 | Project list, storage errors | Hub React state |
-| `workingCopy`, `isDirty`, transport UI | Studio React state |
+| `workingCopy`, `isDirty`, playback UI | Studio React state |
+| Dirty comparison | `areStudioEditsEqual` in `project/projectUtils.ts` — derived from `workingCopy` vs saved baseline |
+| Topbar transport snapshot + actions | `routing/studioSession.ts` — Studio publishes, header subscribes |
 | URL route | `useAppSubRoute` |
 | Persisted projects | `localStorage` envelope via `storage/` |
 | Tone nodes, schedule ids | `audioEngine` module |
@@ -123,8 +126,10 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 | Hub list sort / date display | `project/sortProjects.ts`, `project/formatProject.ts` |
 | Duplicate, rename, Studio Save | `project/projectUtils.ts` |
 | Hub project row + dialogs | `components/ProjectCard.tsx`, `components/ConfirmDeleteDialog.tsx` |
-| Studio transport + grids | `components/TransportBar.tsx`, `StepCell.tsx`, `DrumSequencer.tsx`, `MelodyGrid.tsx`, `MuteToggle.tsx` |
+| Studio transport + grids | `MusicCreatorHeaderItems.tsx`, `components/TransportBar.tsx`, `StepCell.tsx`, `DrumSequencer.tsx`, `MelodyGrid.tsx`, `MuteToggle.tsx` |
 | Studio leave confirm | `components/ConfirmLeaveStudioDialog.tsx`, `routing/leaveGuard.ts` |
+| Studio ↔ topbar bridge | `routing/studioSession.ts`, `MusicCreatorHeaderItems.tsx` |
+| Refresh / tab close guard | `routing/useDirtyBeforeUnload.ts` |
 | Storage load / recovery UI | `components/storage/` |
 | Load, save, migrate, validate | `storage/*.ts` |
 | Route guards | `routing/projectRoute.ts`, `routing/leaveGuard.ts` |
@@ -256,7 +261,9 @@ Manual re-check via DevTools recipes above when changing storage or routing.
 - [x] Sample-preview documented as intentional dev shortcut
 - [x] `npm run check` and `npm test` (music-creator) pass
 
-**Stretch (post-MVP):** `beforeunload` when dirty; document-level Space/Escape; arrow-key grid nav; starter template.
+**Stretch (post-MVP):** document-level Space/Escape; arrow-key grid nav; starter template.
+
+**Post-MVP shipped:** Shell topbar transport (`headerItems`) — Play/Stop (label on wide screens), name, tempo slider + number input, Save, dirty indicator; centered over canvas (offsets for left nav); studio-only; sample-preview Save disabled in header. Dirty state is content-based (`areStudioEditsEqual`) — undoing edits restores "Saved" and clears leave guard. `beforeunload` when dirty warns on refresh/tab close (browser-native prompt).
 
 ---
 
