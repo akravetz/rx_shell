@@ -21,7 +21,7 @@ src/apps/music-creator/
 ├── types.ts                  # MusicProject, envelope, StorageResult, drum/melody shapes
 ├── constants/
 │   ├── music.ts              # STEPS, tempo bounds, drum ids/labels, melody scale MIDI, isBarEnd
-│   ├── storageMessages.ts    # StorageErrorCode user copy, sample-preview id, recoverable codes
+│   ├── storageMessages.ts    # StorageErrorCode user copy, recoverable codes
 │   └── index.ts              # Re-exports for convenient imports
 ├── project/
 │   ├── createProject.ts      # createEmptyProject, createEmptyStoreEnvelope — default patterns
@@ -81,8 +81,6 @@ Navigation uses `useAppSubRoute("music-creator")` from the shell.
 | `/music-creator/studio/:projectId` | Studio |
 
 Shell query params (`?rp=`, `?nav=`, etc.) are preserved by the hook.
-
-**Dev shortcut:** `SAMPLE_PREVIEW_PROJECT_ID` (`sample-preview`) opens Studio via session registry only — not persisted. Intentional for deep-link QA without polluting the store.
 
 ---
 
@@ -148,7 +146,7 @@ Studio loads the URL project into **`workingCopy`** (`structuredClone` of saved 
 
 ### Transport & Save
 
-Transport lives in the **shell topbar** via `headerItems` (`MusicCreatorHeaderItems`), not in the Studio canvas. Studio publishes snapshot + action callbacks through `routing/studioSession.ts` (Arcade-style module store + `useSyncExternalStore`). Controls: Play/Stop toggle, editable project name, tempo (live BPM while playing), Save, dirty indicator. Sample-preview route uses in-memory blank project; Save disabled in header too.
+Transport lives in the **shell topbar** via `headerItems` (`MusicCreatorHeaderItems`), not in the Studio canvas. Studio publishes snapshot + action callbacks through `routing/studioSession.ts` (Arcade-style module store + `useSyncExternalStore`). Controls: Play/Stop toggle, editable project name, tempo (live BPM while playing), Save, dirty indicator.
 
 **Save:** `commitStudioProject` → router `saveStore` → `savedProject` prop refresh → `isDirty` clears. Save failure shows inline banner; working copy retained.
 

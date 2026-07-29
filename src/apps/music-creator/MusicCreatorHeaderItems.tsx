@@ -26,7 +26,6 @@ export function MusicCreatorHeaderItems() {
         onTempoChange={(tempo) => invokeStudioSessionAction("onTempoChange", tempo)}
         onTogglePlayback={() => invokeStudioSessionAction("onTogglePlayback")}
         onSave={() => invokeStudioSessionAction("onSave")}
-        saveDisabled={state.saveDisabled}
       />
     </div>
   );

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAppSubRoute } from "../../shell/useAppSubRoute";
-import { SAMPLE_PREVIEW_PROJECT_ID } from "./constants/storageMessages";
 import { LoadingPanel } from "./components/storage/LoadingPanel";
 import { createEmptyProject } from "./project/createProject";
 import { duplicateProject, renameProject, commitStudioProject } from "./project/projectUtils";
@@ -329,7 +328,6 @@ export function MusicCreatorContent() {
         onDismissActionError={() => setActionError(null)}
         onCreateProject={handleCreateProject}
         onOpenProject={openStudio}
-        onOpenSample={() => openStudio(SAMPLE_PREVIEW_PROJECT_ID)}
         onRenameProject={handleRenameProject}
         onDuplicateProject={handleDuplicateProject}
         onDeleteProject={handleDeleteProject}

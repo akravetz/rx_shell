@@ -50,7 +50,7 @@ App-local Zustand, command bus, autosave, global `Transport.cancel()`, sample-ba
 
 - **App ID:** `music-creator` (URL segment, manifest id, CSS prefix `music-creator-`)
 - **Storage key:** `music-creator:store`
-- **Session routing key:** `music-creator:session-project-ids` in `sessionStorage` — fallback for `SAMPLE_PREVIEW_PROJECT_ID` (`constants/storageMessages.ts`) only
+- **Session routing key:** `music-creator:session-project-ids` in `sessionStorage` — tracks project ids opened this tab for studio deep links
 
 ### Comments
 
@@ -63,7 +63,7 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 - **Audio** (`audio/*`) — factories vs engine ownership; `stop()` keeps synths, `dispose()` destroys them; never in React state
 - **Timing / ordering** (e.g. `storeReady` before route guard, load does not rewrite disk)
 - **Multi-step flows** (create → save → navigate; repair vs reset)
-- **Intentional limitations** (sample-preview not persisted, shell leave without confirm)
+- **Intentional limitations** (shell leave without confirm on app switch / browser back)
 
 **Usually skip:** Pure boilerplate JSX, obvious prop passthrough, restating what a line literally does.
 
@@ -77,7 +77,7 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 - Bare `/music-creator` → `replace("projects")`.
 - `/music-creator/studio` (no id) → `replace("projects")`.
 - Unknown studio id → `replace("projects")` + one-shot “Project not found” banner.
-- **Route lookup:** `isKnownProjectId(id, envelope)` checks `localStorage` first; session registry for sample-preview dev shortcut only.
+- **Route lookup:** `isKnownProjectId(id, envelope)` checks `localStorage` first; session registry fallback for ids opened this tab
 
 ### Left nav
 
@@ -121,7 +121,7 @@ Prefer readable code first, but **do not hesitate to comment** when you or a fut
 | ---- | ----- |
 | Types, envelope, `StorageResult` | `types.ts` |
 | STEPS, drum ids, melody MIDI, tempo bounds | `constants/music.ts` |
-| Storage error copy, sample-preview id | `constants/storageMessages.ts` |
+| Storage error copy | `constants/storageMessages.ts` |
 | Blank project / empty store factories | `project/createProject.ts` |
 | Hub list sort / date display | `project/sortProjects.ts`, `project/formatProject.ts` |
 | Duplicate, rename, Studio Save | `project/projectUtils.ts` |
@@ -178,7 +178,6 @@ Per-milestone sign-off blocks below. Edge-case recipes are for re-testing when t
 - [x] Routing: redirects, studio deep links, unknown id banner, shell `?nav=` preserved, no nested app `<main>`
 - [x] Persistence: create/open/rename/duplicate/delete survive refresh
 - [x] Storage errors surfaced in UI (no white screen); reset + invalid-project repair work
-- [x] Sample studio (dev) opens without being in store
 - [x] `npm run check` and `npm test` (music-creator) pass
 
 **Loading UI:** `LoadingPanel` while `!storeReady` — sync load is usually sub-frame; spinner rarely visible. Hub → studio navigation skips loading when store is already in memory.
@@ -193,7 +192,7 @@ Per-milestone sign-off blocks below. Edge-case recipes are for re-testing when t
 
 ### Milestone 3 — sign-off
 
-- [x] Transport: name/tempo editors; dirty indicator; sample-preview Save disabled
+- [x] Transport: name/tempo editors; dirty indicator
 - [x] Drums 4×16 + melody 8×16 (monophonic); native button cells with `aria-pressed` / focus ring
 - [x] Per-track mute toggles; pattern editable while muted; mute → dirty
 - [x] Explicit Save writes pattern/name/tempo/mutes; refresh restores; dirty clears; Save failure keeps dirty + banner
@@ -241,7 +240,6 @@ Per-milestone sign-off blocks below. Edge-case recipes are for re-testing when t
 | Unknown studio id | Redirect + “Project not found” flash | Yes |
 | Quota on save | Error banner; in-memory state retained | Yes (`StorageResult` + Studio/hub banners) |
 | Shell query params | Preserved via `useAppSubRoute` | Yes (hook contract) |
-| Sample preview | Opens via session registry; Save disabled; not in store | Yes (intentional dev path) |
 
 Manual re-check via DevTools recipes above when changing storage or routing.
 
@@ -258,12 +256,11 @@ Manual re-check via DevTools recipes above when changing storage or routing.
 - [x] Lifecycle audit documented above
 - [x] Persistence/route scenarios verified (code + wiring)
 - [x] ARCHITECTURE.md / AGENTS.md synced with M2–M4 behavior
-- [x] Sample-preview documented as intentional dev shortcut
 - [x] `npm run check` and `npm test` (music-creator) pass
 
 **Stretch (post-MVP):** document-level Space/Escape; arrow-key grid nav; starter template.
 
-**Post-MVP shipped:** Shell topbar transport (`headerItems`) — Play/Stop (label on wide screens), name, tempo slider + number input, Save, dirty indicator; centered over canvas (offsets for left nav); studio-only; sample-preview Save disabled in header. Dirty state is content-based (`areStudioEditsEqual`) — undoing edits restores "Saved" and clears leave guard. `beforeunload` when dirty warns on refresh/tab close (browser-native prompt).
+**Post-MVP shipped:** Shell topbar transport (`headerItems`) — Play/Stop (label on wide screens), name, tempo slider + number input, Save, dirty indicator; centered over canvas (offsets for left nav); studio-only. Dirty state is content-based (`areStudioEditsEqual`) — undoing edits restores "Saved" and clears leave guard. `beforeunload` when dirty warns on refresh/tab close (browser-native prompt).
 
 ---
 

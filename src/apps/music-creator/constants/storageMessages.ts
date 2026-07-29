@@ -28,6 +28,3 @@ export const RECOVERABLE_LOAD_ERROR_CODES: readonly StorageErrorCode[] = [
 export function isRecoverableLoadError(code: StorageErrorCode): boolean {
   return RECOVERABLE_LOAD_ERROR_CODES.includes(code);
 }
-
-/** Dev-only studio route — session registry only, not in localStorage (kept for deep-link QA) */
-export const SAMPLE_PREVIEW_PROJECT_ID = "sample-preview";

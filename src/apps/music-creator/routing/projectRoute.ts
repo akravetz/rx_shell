@@ -32,8 +32,7 @@ export function registerSessionProjectId(projectId: string): void {
 
 /**
  * Whether a studio URL project id is known for routing.
- * Checks persisted store first; session registry is a fallback for dev shortcuts
- * (see SAMPLE_PREVIEW_PROJECT_ID) that are not saved to localStorage.
+ * Checks persisted store first; session registry is a fallback for ids opened this tab.
  */
 export function isKnownProjectId(
   projectId: string,

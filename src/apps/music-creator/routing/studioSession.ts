@@ -14,8 +14,6 @@ export interface StudioSessionSnapshot {
   tempo: number;
   isDirty: boolean;
   isPlaying: boolean;
-  /** Sample-preview route — Save stays disabled in header too */
-  saveDisabled: boolean;
 }
 
 export interface StudioSessionActions {
@@ -32,7 +30,6 @@ const INACTIVE_SNAPSHOT: StudioSessionSnapshot = {
   tempo: 120,
   isDirty: false,
   isPlaying: false,
-  saveDisabled: false,
 };
 
 let snapshot: StudioSessionSnapshot = INACTIVE_SNAPSHOT;

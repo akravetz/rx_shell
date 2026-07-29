@@ -478,15 +478,6 @@
   }
 }
 
-.music-creator-btn-dev {
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-}
-
-.music-creator-btn-dev:hover {
-  color: var(--color-text-secondary);
-}
-
 .music-creator-nav-content {
   display: flex;
   flex-direction: column;

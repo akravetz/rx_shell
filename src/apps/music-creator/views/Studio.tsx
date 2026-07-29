@@ -4,7 +4,6 @@ import { ConfirmLeaveStudioDialog } from "../components/ConfirmLeaveStudioDialog
 import { DrumSequencer } from "../components/DrumSequencer";
 import { MelodyGrid } from "../components/MelodyGrid";
 import { DEFAULT_PROJECT_NAME, MELODY_SCALE_MIDI, TEMPO_MAX, TEMPO_MIN } from "../constants";
-import { SAMPLE_PREVIEW_PROJECT_ID } from "../constants/storageMessages";
 import { createEmptyProject } from "../project/createProject";
 import { areStudioEditsEqual } from "../project/projectUtils";
 import { registerStudioLeaveGuard, tryLeaveStudio } from "../routing/leaveGuard";
@@ -22,7 +21,7 @@ export type StudioSaveResult =
 
 export interface StudioProps {
   projectId: string;
-  /** Persisted project from the store — omitted for dev sample-preview route */
+  /** Persisted project from the store */
   savedProject?: MusicProject;
   /** Writes workingCopy to localStorage; router refreshes savedProject on success */
   onSaveProject: (project: MusicProject) => StudioSaveResult;
@@ -45,8 +44,6 @@ export function Studio({
   onSaveProject,
   onBackToProjects,
 }: StudioProps) {
-  const isSamplePreview = projectId === SAMPLE_PREVIEW_PROJECT_ID && savedProject === undefined;
-
   // workingCopy: editable in-memory project — cloned from disk on mount / id change
   const [workingCopy, setWorkingCopy] = useState<MusicProject>(() =>
     resolveInitialWorkingCopy(projectId, savedProject),
@@ -216,8 +213,6 @@ export function Studio({
   );
 
   const handleSave = useCallback(() => {
-    if (isSamplePreview) return;
-
     const trimmed = workingCopy.name.trim();
     if (!trimmed) {
       setSaveError("Project name cannot be empty.");
@@ -232,7 +227,7 @@ export function Studio({
 
     setSaveError(null);
     // isDirty clears when parent refreshStore updates savedProject prop
-  }, [isSamplePreview, onSaveProject, workingCopy]);
+  }, [onSaveProject, workingCopy]);
 
   // Publish transport state to shell topbar (separate React tree via studioSession).
   useEffect(() => {
@@ -253,9 +248,8 @@ export function Studio({
       tempo: workingCopy.tempo,
       isDirty,
       isPlaying,
-      saveDisabled: isSamplePreview,
     });
-  }, [projectId, workingCopy.name, workingCopy.tempo, isDirty, isPlaying, isSamplePreview]);
+  }, [projectId, workingCopy.name, workingCopy.tempo, isDirty, isPlaying]);
 
   useEffect(() => {
     return () => clearStudioSession();
@@ -299,18 +293,8 @@ export function Studio({
             </h1>
           </div>
           <p className="music-creator-muted">
-            {isSamplePreview ? (
-              <>
-                Sample preview — not saved to storage. Project:{" "}
-                <strong>{displayName}</strong> · ID{" "}
-                <code className="music-creator-code">{projectId}</code>
-              </>
-            ) : (
-              <>
-                Project: <strong>{displayName}</strong> · ID{" "}
-                <code className="music-creator-code">{projectId}</code>
-              </>
-            )}
+            Project: <strong>{displayName}</strong> · ID{" "}
+            <code className="music-creator-code">{projectId}</code>
           </p>
         </header>
 
@@ -371,6 +355,6 @@ function resolveInitialWorkingCopy(
   }
 
   return createEmptyProject(projectId, {
-    name: projectId === SAMPLE_PREVIEW_PROJECT_ID ? "Sample preview" : DEFAULT_PROJECT_NAME,
+    name: DEFAULT_PROJECT_NAME,
   });
 }

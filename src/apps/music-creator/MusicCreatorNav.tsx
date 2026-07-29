@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useShellStore } from "../../shell/store";
 import { useAppSubRoute } from "../../shell/useAppSubRoute";
 import { loadStore } from "./storage/storage";
-import { SAMPLE_PREVIEW_PROJECT_ID } from "./constants/storageMessages";
 import { tryLeaveStudio } from "./routing/leaveGuard";
 
 const APP_ID = "music-creator";
@@ -39,11 +38,9 @@ export function MusicCreatorNav() {
 
   const studioLabel =
     studioProjectName ??
-    (projectId === SAMPLE_PREVIEW_PROJECT_ID
-      ? "Sample preview"
-      : projectId
-        ? `Studio · ${projectId.length > 8 ? `${projectId.slice(0, 8)}…` : projectId}`
-        : "Studio");
+    (projectId
+      ? `Studio · ${projectId.length > 8 ? `${projectId.slice(0, 8)}…` : projectId}`
+      : "Studio");
 
   return (
     <nav className="music-creator-nav" aria-label="Music Creator">

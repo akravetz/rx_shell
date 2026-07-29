@@ -19,8 +19,6 @@ export interface ProjectHubProps {
   onDismissActionError: () => void;
   onCreateProject: () => void;
   onOpenProject: (projectId: string) => void;
-  /** Dev shortcut — deep-links studio without persisting (see SAMPLE_PREVIEW_PROJECT_ID) */
-  onOpenSample: () => void;
   onRenameProject: (projectId: string, name: string) => void;
   onDuplicateProject: (projectId: string) => void;
   onDeleteProject: (projectId: string) => void;
@@ -44,7 +42,6 @@ export function ProjectHub({
   onDismissActionError,
   onCreateProject,
   onOpenProject,
-  onOpenSample,
   onRenameProject,
   onDuplicateProject,
   onDeleteProject,
@@ -106,15 +103,7 @@ export function ProjectHub({
             onClick={onCreateProject}
             disabled={actionsDisabled}
           >
-            New blank project
-          </button>
-          <button
-            type="button"
-            className="music-creator-btn music-creator-btn-ghost music-creator-btn-dev"
-            onClick={onOpenSample}
-            title="Opens studio without saving — for route/deep-link QA only"
-          >
-            Sample studio (dev)
+            New project
           </button>
         </div>
 

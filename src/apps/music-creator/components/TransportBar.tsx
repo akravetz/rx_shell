@@ -99,10 +99,8 @@ export interface TransportBarProps {
   onTempoChange: (tempo: number) => void;
   /** Single transport control — Studio starts or stops audioEngine */
   onTogglePlayback: () => void;
-  /** Wired by Studio — persists workingCopy via router saveStore (phase 3.5) */
+  /** Wired by Studio — persists workingCopy via router saveStore */
   onSave: () => void;
-  /** When true, Save stays disabled (sample-preview route — not persisted) */
-  saveDisabled?: boolean;
 }
 
 function PlayIcon() {
@@ -133,7 +131,6 @@ export function TransportBar({
   onTempoChange,
   onTogglePlayback,
   onSave,
-  saveDisabled = false,
 }: TransportBarProps) {
   const tempoSliderId = "music-creator-header-tempo-slider";
   const tempoNumberId = "music-creator-header-tempo-number";
@@ -197,7 +194,7 @@ export function TransportBar({
           type="button"
           className="music-creator-btn music-creator-btn-primary"
           onClick={onSave}
-          disabled={saveDisabled || !isDirty}
+          disabled={!isDirty}
           aria-label={isDirty ? "Save project" : "Save project (no changes)"}
         >
           Save
