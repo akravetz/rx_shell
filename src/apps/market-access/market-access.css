@@ -1,0 +1,463 @@
+/* ── Market Access ────────────────────────────────────────────────────
+   Namespaced .market-access-* styles. Design tokens only.
+   ──────────────────────────────────────────────────────────────────── */
+
+.market-access-page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.market-access-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.market-access-subtitle {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.market-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.market-access-btn {
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.market-access-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.market-access-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  border-color: transparent;
+}
+
+.market-access-btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.market-access-btn-secondary {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.market-access-btn-secondary:hover {
+  background: var(--color-bg-hover);
+}
+
+.market-access-btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+}
+
+.market-access-btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.market-access-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-muted);
+  border: 1px solid var(--color-border-secondary);
+}
+
+.market-access-banner-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.market-access-nav .nav-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.market-access-nav .nav-item:disabled:hover {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.market-access-empty {
+  margin-top: var(--space-4);
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border-primary);
+  background: var(--color-bg-elevated);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.market-access-empty-icon {
+  color: var(--color-text-tertiary);
+}
+
+.market-access-empty-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.market-access-empty-text {
+  margin: 0;
+  max-width: 28rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────── */
+
+.market-access-page-form {
+  max-width: 36rem;
+}
+
+.market-access-form-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+}
+
+.market-access-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+}
+
+.market-access-input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.market-access-input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px hsla(172, 55%, 42%, 0.15);
+}
+
+.market-access-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.market-access-input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.market-access-field-error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.market-access-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* ── Package file picker ───────────────────────────────────────────────── */
+
+.market-access-file-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-file-picker-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 2px dashed var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  position: relative;
+}
+
+.market-access-file-picker-zone:hover {
+  border-color: var(--color-accent-text);
+  background: hsla(172, 55%, 42%, 0.04);
+  color: var(--color-text-secondary);
+}
+
+.market-access-file-picker-zone:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.market-access-file-picker-zone-dragover {
+  border-color: var(--color-accent-text);
+  background: hsla(172, 55%, 42%, 0.08);
+  color: var(--color-accent-text);
+}
+
+.market-access-file-picker-zone-selected {
+  border-style: solid;
+  color: var(--color-text-secondary);
+}
+
+.market-access-file-picker-text {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.market-access-file-picker-selected {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  word-break: break-all;
+  text-align: center;
+}
+
+.market-access-file-picker-hint {
+  font-size: var(--text-2xs);
+  color: var(--color-text-quaternary);
+}
+
+.market-access-file-picker-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.market-access-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── List ────────────────────────────────────────────────────────────── */
+
+.market-access-list-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-session-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  line-height: var(--leading-relaxed);
+}
+
+.market-access-section-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.market-access-assessment-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-assessment-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-elevated);
+}
+
+.market-access-assessment-card-open {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.market-access-assessment-card-open:hover {
+  background: var(--color-bg-hover);
+}
+
+.market-access-assessment-card-open:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.market-access-assessment-card-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.market-access-assessment-card-meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Workspace ───────────────────────────────────────────────────────── */
+
+.market-access-page-workspace {
+  max-width: 52rem;
+}
+
+.market-access-workspace-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-meta-panel {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.market-access-meta-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-meta-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.market-access-meta-label {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-access-meta-value {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.market-access-placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.market-access-placeholder-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border-primary);
+  background: var(--color-bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.market-access-placeholder-icon {
+  color: var(--color-text-tertiary);
+}
+
+.market-access-placeholder-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.market-access-placeholder-text {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.market-access-placeholder-badge {
+  margin: 0;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

@@ -73,9 +73,15 @@ ai_shell/
         ├── admin/                # User/system administration
         ├── db-helper/            # Database exploration tools
         │   └── ARCHITECTURE.md
-        └── codascope/            # AI-powered codebase documentation & analysis
-            ├── ARCHITECTURE.md   # ← App-specific architecture (progressive disclosure)
-            └── AGENTS.md         # ← App-specific agent development rules
+        ├── codascope/            # AI-powered codebase documentation & analysis
+        │    ├── ARCHITECTURE.md   # ← App-specific architecture (progressive disclosure)
+        │    └── AGENTS.md         # ← App-specific agent development rules
+        ├── music-creator/        # Compact browser-based drum and melody sequencer
+        │   ├── ARCHITECTURE.md   # ← App-specific architecture (progressive disclosure)
+        │   └── AGENTS.md         # ← App-specific agent development rules
+        └── market-access/        # Local-first analog assessment workflow
+            ├── ARCHITECTURE.md
+            └── AGENTS.md
 ```
 
 > **Container Principle**: AIShell is a container. Each app is self-governing — its architecture and development conventions live in its own `ARCHITECTURE.md` and `AGENTS.md`. This document covers only the shell framework. For app-specific details, read the app's own docs.
@@ -120,9 +126,10 @@ import { arcadeApp }     from "./arcade/manifest";
 import { adminApp }      from "./admin/manifest";
 import { dbHelperApp }   from "./db-helper/manifest";
 import { codaScopeApp }  from "./codascope/manifest";
+import { musicCreatorApp } from "./music-creator/manifest";
 
 export const apps: AppManifest[] = [
-  helloWorldApp, arcadeApp, dbHelperApp, codaScopeApp, adminApp,
+  helloWorldApp, arcadeApp, dbHelperApp, codaScopeApp, musicCreatorApp, adminApp
 ];
 ```
 
