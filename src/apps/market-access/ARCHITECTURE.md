@@ -22,7 +22,7 @@ structured or extracted project knowledge
 generated synthesis / assessment
 ```
 
-**Implementation status:** PR 1 complete — session-only create → list → workspace. PR 2 Phase 1 complete — `PackageFormat` (`markdown` | `docx` | `pptx`) and client 200-character / 20 MiB checks. Persistence is still session-only. Next: PR 2 Phase 2 (service and API).
+**Implementation status:** PR 1 complete — session-only create → list → workspace. PR 2 Phases 1–2 complete — `PackageFormat`, client limits, and disk/API persistence (`/api/market-access/*`). The UI still uses session state and does not call the API yet. Next: PR 2 Phase 3 (wire UI).
 
 ## Level 1 — File map
 
@@ -49,9 +49,15 @@ src/apps/market-access/
     ├── README.md
     ├── pr-01-ui-foundation.md  # Historical
     └── pr-02-local-persistence.md
+
+server/
+├── routes/marketAccessRoutes.ts          # GET/POST /api/market-access/assessments
+└── services/marketAccessAssessmentService.ts  # Disk create/list/get (+ tests)
 ```
 
-Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CSS imported from [`src/styles.css`](../../styles.css).
+Default assessments root: `<repo>/.local/market-access/assessments` (override: absolute `AISHELL_MARKET_ACCESS_ASSESSMENTS_ROOT`).
+
+Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CSS imported from [`src/styles.css`](../../styles.css). Routes registered from [`server/index.ts`](../../../server/index.ts).
 
 ## Level 2 — Shell wiring
 
@@ -73,16 +79,18 @@ Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CS
 
 Create validates product name (required, max 200 characters) and one Markdown/DOCX/PPTX package file (accepted extension, 20 MiB cap), appends an `Assessment` to root state, and navigates to the new workspace. Refresh clears assessments; unknown ids redirect to the list.
 
+`GET/POST /api/market-access/assessments` and `GET /api/market-access/assessments/:id` persist to disk. The UI does not call them yet.
+
 ## Level 4 — State
 
 | Concern | Owner |
 | --- | --- |
 | In-memory assessments | `useState<Assessment[]>` in `MarketAccessContent` |
 | Create-form fields / errors | Local `useState` in `CreateAssessment` |
-| Package on disk | Not stored — metadata `{ fileName, fileSize, format }` only |
+| Package on disk | Written by the API (`assessment.json` + `sources/<file>` + empty `knowledge/`); UI still stores metadata `{ fileName, fileSize, format }` only |
 | Current view | URL via `useAppSubRoute` |
 
-No `localStorage`, Zustand, or `/api/*` yet. Persistence remains session-only.
+No `localStorage` or Zustand. `/api/market-access/*` exists; the UI still uses session state.
 
 ## Level 5 — Current boundaries
 
@@ -91,13 +99,14 @@ Implemented:
 - Shell registration, URL routing, left nav
 - Create form (product name + one Markdown/DOCX/PPTX package file)
 - Client submit checks: name required and ≤ 200 characters; file required; accepted extension; 20 MiB size cap
-- In-memory session assessments and list cards
+- In-memory session assessments and list cards (UI not yet wired to the API)
 - Workspace overview with package metadata and non-authoritative placeholders
+- Disk persistence API: create copies bytes to `sources/`, mkdir empty `knowledge/`, list returns `skippedCount`, GET by UUID
 
 Explicitly deferred:
 
-- Disk / project-directory persistence (PR 2 Phase 2+)
-- Package parsing and file copy (PR 2+)
+- Wiring the UI to `/api/market-access/*` (PR 2 Phase 3)
+- Package parsing or conversion
 - Agent harness and analog research (PR 3+)
 - Knowledge repository generation (PR 4+)
 - Rename, delete, routed sub-pages, right-panel assistant

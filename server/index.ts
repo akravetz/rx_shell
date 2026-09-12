@@ -27,9 +27,12 @@ import { registerDbHelperRoutes } from "./routes/dbHelperRoutes.js";
 import { registerDbExplorerRoutes } from "./routes/dbExplorerRoutes.js";
 import { registerCodaScopeRoutes } from "./routes/codaScopeRoutes.js";
 import { registerFilesystemRoutes } from "./routes/filesystemRoutes.js";
+import { registerMarketAccessRoutes } from "./routes/marketAccessRoutes.js";
 import { createAiShellUpdateService } from "./services/aiShellUpdateService.js";
 import { registerAiShellUpdateRoutes } from "./routes/aiShellUpdateRoutes.js";
 import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export type ShellMode = "standalone" | "server";
 
@@ -203,10 +206,9 @@ registerDbHelperRoutes(app, { secretService, authMiddleware, httpError });
 registerDbExplorerRoutes(app, { secretService, authMiddleware, httpError });
 registerCodaScopeRoutes(app, { secretService, authMiddleware, httpError });
 registerFilesystemRoutes(app, { authMiddleware, httpError });
+registerMarketAccessRoutes(app, { authMiddleware, httpError, repoRoot: REPO_ROOT });
 
 // ── Self-update infrastructure ──────────────────────────────────────
-
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const updateService = createAiShellUpdateService({
   REPO_ROOT,
