@@ -4,13 +4,13 @@ Canonical PR 2 plan. Do not maintain a second evolving copy elsewhere.
 
 **Goal:** persist assessments as real local directories so create / list / workspace survive refresh, app restart, and the normal Dev Container rebuild/recreation workflow.
 
-**Status:** In progress — Phase 1 complete. PR 1 is historical context only.
+**Status:** In progress — Phases 1–2 complete. PR 1 is historical context only.
 
-**Not this PR:** package parsing or conversion, agent invocation, analog/knowledge/evidence work, presentations, SaaS/cloud, FolderPicker root setup, speculative empty workflow folders.
+**Not this PR:** package parsing or conversion, agent invocation, analog/evidence work, filling `knowledge/`, presentations, SaaS/cloud, FolderPicker root setup, extra workflow folders beyond `sources/` and `knowledge/`.
 
 Work **one internal phase at a time**. Stop after each phase.
 
-**Progress:** Phase 1 complete (client `PackageFormat` rename + PPTX + 200-character / 20 MiB checks). Phases 2–4 not started.
+**Progress:** Phase 1 complete (client `PackageFormat` rename + PPTX + 200-character / 20 MiB checks). Phase 2 complete (service, `/api/market-access/*`, `sources/` + empty `knowledge/`, `/.local/` gitignore). Phases 3–4 not started. UI still session-only.
 
 ---
 
@@ -72,7 +72,7 @@ Gitignore with a root-anchored `/.local/`. That is not security and does not sto
 
 ### Copy, not reference
 
-Create uses the browser file picker (Windows native). The server only ever sees bytes. Store a copy under the assessment `source/` directory.
+Create uses the browser file picker (Windows native). The server only ever sees bytes. Store a copy under the assessment `sources/` directory.
 
 ### Identity
 
@@ -97,7 +97,7 @@ Rename PR 1 `kind` / `PackageFileKind` / `getPackageFileKind` / `packageFileKind
 
 Create requires **exactly one** product-package file. That is a settled PR 2 MVP decision, not a claim that the finished app will always accept only one file.
 
-Keep later evolution possible without designing it now: originals stay under `source/`; `AssessmentRecord` stays behind the service; views never consume the record; `schemaVersion` can bump. A later version may read a v1 single `package` as a one-item collection internally. **Do not** change v1 to an array preemptively — future input might be equivalent files, one primary plus supporting sources, or categorized types. Multi-file support remains deferred.
+Keep later evolution possible without designing it now: originals stay under `sources/`; `AssessmentRecord` stays behind the service; views never consume the record; `schemaVersion` can bump. A later version may read a v1 single `package` as a one-item collection internally. **Do not** change v1 to an array preemptively — future input might be equivalent files, one primary plus supporting sources, or categorized types. Multi-file support remains deferred.
 
 ### Directory skeleton
 
@@ -105,24 +105,26 @@ Keep later evolution possible without designing it now: originals stay under `so
 <assessmentsRoot>/
   <slug>/
     assessment.json
-    source/
+    sources/
       <sanitized-original-name>
+    knowledge/
 ```
 
 | Path | Why now |
 | --- | --- |
 | `<slug>/` | Stable assessment root for later local-agent cwd |
 | `assessment.json` | List/load metadata |
-| `source/` | Provenance boundary for the original package (and later extra sources) |
+| `sources/` | Provenance boundary for the original package (and later extra sources) |
+| `knowledge/` | Required empty workflow directory; no files or generation in PR 2 |
 
-**Do not create** `analogs/`, `evidence/`, `knowledge/`, `agent/`, `output/`, or other derived/synthesis folders. Those encode PR 3–4 assumptions.
+These are the **only two workflow directories**. **Do not create** `analogs/`, `evidence/`, `agent/`, `output/`, or other derived/synthesis folders.
 
-`source/` is preferred over `package/` (npm clash, vague) and over `product-package/` (awkward; implies a single file forever).
+`sources/` is preferred over `package/` (npm clash, vague) and over `product-package/` (awkward; implies a single file forever).
 
-Conceptual layers (docs only, no extra dirs):
+Conceptual layers (docs only; `knowledge/` stays empty in this PR):
 
 ```
-source / provenance  →  derived knowledge  →  generated synthesis
+sources / provenance  →  derived knowledge  →  generated synthesis
 ```
 
 ### Schema (`assessment.json`)
@@ -178,7 +180,7 @@ Cleanup: `rm` **only** the assessment directory this request successfully create
 | User-facing errors | No container/Linux absolute paths |
 | Invalid env override | Reject relative/empty at root resolution; do not write under cwd |
 
-**Defer:** missing-`source/` file warning (create writes both; leftover orphans are later integrity work).
+**Defer:** missing-`sources/` file warning (create writes the package and both workflow dirs; leftover orphans are later integrity work).
 
 ---
 
@@ -197,7 +199,7 @@ sequenceDiagram
   UI->>API: POST multipart productName + file
   API->>API: multer buffer
   API->>Svc: productName + bytes + original name
-  Svc->>Disk: mkdir slug, write source/file, atomic assessment.json
+  Svc->>Disk: mkdir slug, write sources/file, empty knowledge/, atomic assessment.json
   Svc-->>API: AssessmentRecord
   API-->>UI: AssessmentDto
   UI->>UI: insert DTO into list cache
@@ -266,7 +268,7 @@ Register in [`server/index.ts`](../../../../server/index.ts) like db-helper (one
 
 **Modify:** `packageFile.ts` / `.test.ts` (rename + PPTX + 200-char name / 20 MiB helpers as needed); `types.ts`; create/list/workspace/content/picker; `market-access.css` if needed; `server/index.ts`; [`.gitignore`](../../../../.gitignore) (root-anchored `/.local/`); `ARCHITECTURE.md` / `AGENTS.md` as phases land; this plan.
 
-**Do not create:** `sessionStore.ts`, `validateCreate.ts`, FolderPicker wiring, empty analog/evidence/knowledge dirs, `.dockerignore` (current image build cannot include repo `.local/`).
+**Do not create:** `sessionStore.ts`, `validateCreate.ts`, FolderPicker wiring, empty analog/evidence dirs, `.dockerignore` (current image build cannot include repo `.local/`). Create does mkdir an empty `knowledge/` beside `sources/`.
 
 ---
 
@@ -278,9 +280,9 @@ Stop after each phase.
 
 **Acceptance:** `PackageFileKind` / `kind` gone; `PackageFormat` includes `pptx`; picker `accept` and visible guidance list Markdown, Word, and PowerPoint plus the 20 MiB cap; client size check and 200-character product-name check; tests pass; no API yet.
 
-### Phase 2 — Service and API — not started
+### Phase 2 — Service and API — complete
 
-**Acceptance:** Default root `<repo>/.local/market-access/assessments`; absolute `AISHELL_MARKET_ACCESS_ASSESSMENTS_ROOT` honored; relative/empty override rejected; create writes atomic `assessment.json` + `source/<file>`; UUID + 80-char slug + `EEXIST` retry; list returns `skippedCount`; GET by id; 400s for name/file/type/`invalid_upload`; 413 oversize; 500 `write_failed` / `storage_unavailable` with no paths in the body; sanitize `../` and `\`; cleanup only the new dir; allowlist alignment test; `/.local/` in `.gitignore`. Inject a temp root into the service in tests; add an env-resolution test only if resolution is a separate function. UI may still be session-only.
+**Acceptance:** Default root `<repo>/.local/market-access/assessments`; absolute `AISHELL_MARKET_ACCESS_ASSESSMENTS_ROOT` honored; relative/empty override rejected; create writes atomic `assessment.json` + `sources/<file>` + empty `knowledge/`; UUID + 80-char slug + `EEXIST` retry; list returns `skippedCount`; GET by id; 400s for name/file/type/`invalid_upload`; 413 oversize; 500 `write_failed` / `storage_unavailable` with no paths in the body; sanitize `../` and `\`; cleanup only the new dir; allowlist alignment test; `/.local/` in `.gitignore`. Inject a temp root into the service in tests; add an env-resolution test only if resolution is a separate function. UI may still be session-only.
 
 ### Phase 3 — Wire UI — not started
 
@@ -304,9 +306,9 @@ Keep Create enabled; validate on submit; `role="alert"`; visible loading text.
 
 ## 8. Non-goals and deferred
 
-**Non-goals:** parse/convert (including PPTX→Markdown or slide extract); agent/Cursor CLI; analog generation; knowledge-repo UI; FolderPicker; `localStorage`; delete/rename/duplicate; `.ppt` / PDF; app Zustand; empty workflow folders; displaying Linux paths; `src/apps` imported by `server/`.
+**Non-goals:** parse/convert (including PPTX→Markdown or slide extract); agent/Cursor CLI; analog generation; knowledge-repo UI or files inside `knowledge/`; FolderPicker; `localStorage`; delete/rename/duplicate; `.ppt` / PDF; app Zustand; extra workflow folders beyond `sources/` and `knowledge/`; displaying Linux paths; `src/apps` imported by `server/`.
 
-**Deferred:** Change-location / shared-drive root; multi-file packages (a later `schemaVersion` may treat v1 `package` as a one-item collection — do not design that migration here); missing-`source/` integrity UI; knowledge/output layout; slug-in-URL.
+**Deferred:** Change-location / shared-drive root; multi-file packages (a later `schemaVersion` may treat v1 `package` as a one-item collection — do not design that migration here); missing-`sources/` integrity UI; contents of `knowledge/`; slug-in-URL.
 
 **Deferred product questions (Alex, when available — not implementation blockers):**
 

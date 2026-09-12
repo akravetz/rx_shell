@@ -4,9 +4,9 @@ Operational rules for safely modifying **this app as it exists**. Workflow lives
 
 ## Current status
 
-**PR 1 (UI foundation) is complete.** Session-only create → list → workspace with product name and package file metadata. No disk persistence, parsing, or agent work yet.
+**PR 1 (UI foundation) is complete.** Session-only create → list → workspace with product name and package file metadata. No parsing or agent work yet.
 
-**PR 2 Phase 1 is complete** — `PackageFormat` (`markdown` | `docx` | `pptx`) and client 200-character / 20 MiB checks. Next: **PR 2 Phase 2** (service and API). Historical design: [`plans/pr-01-ui-foundation.md`](plans/pr-01-ui-foundation.md). Active plan: [`plans/pr-02-local-persistence.md`](plans/pr-02-local-persistence.md).
+**PR 2 Phases 1–2 are complete** — `PackageFormat`, client limits, and `/api/market-access/*` disk persistence. The UI still uses session state. Next: **PR 2 Phase 3** (wire UI). Historical design: [`plans/pr-01-ui-foundation.md`](plans/pr-01-ui-foundation.md). Active plan: [`plans/pr-02-local-persistence.md`](plans/pr-02-local-persistence.md).
 
 ## Conventions
 
@@ -29,12 +29,14 @@ See [`APP_DEVELOPMENT_GUIDE.md`](../../../APP_DEVELOPMENT_GUIDE.md) and [`.agent
 | Types | `types.ts` |
 | Package helpers | `packageFile.ts` (+ `packageFile.test.ts`) |
 | Styles | `market-access.css` |
+| Assessment API | `server/routes/marketAccessRoutes.ts` |
+| Assessment disk service | `server/services/marketAccessAssessmentService.ts` |
 
-No `server/` routes, FolderPicker, or agent modules unless the active plan says so.
+Do not import `src/apps` from `server/`. Do not add FolderPicker or agent modules unless the active plan says so. Default disk root is `<repo>/.local/market-access/assessments`. Each assessment dir is `assessment.json` + `sources/` + empty `knowledge/` only.
 
 ## Verification
 
-**Automated (every change):** `npm run check`; `npm test market-access` when touching pure helpers.
+**Automated (every change):** `npm run check`; `npm test market-access` when touching client helpers; `npm test marketAccess` when touching the service or routes.
 
 **Manual smoke (after routing, create, list, or workspace changes):**
 
