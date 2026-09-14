@@ -14,7 +14,7 @@ import { CreateAssessment } from "./views/CreateAssessment";
 const APP_ID = "market-access";
 const NOT_FOUND_FLASH = "Assessment not found.";
 
-/** Insert if new, replace if the id is already in the cache. */
+/** Insert or replace by id. */
 function upsertAssessment(list: Assessment[], item: Assessment): Assessment[] {
   const index = list.findIndex((entry) => entry.id === item.id);
   if (index === -1) return [item, ...list];
@@ -83,12 +83,8 @@ function WorkspaceLoadState({
 }
 
 /**
- * URL router + list cache.
- *
- * Disk via `/api/market-access/*` is the source of truth. `assessments`
- * is only a working copy so the list and workspace can render without
- * refetching on every click. After POST we upsert, then navigate — that
- * is why All assessments can show the new card before another GET.
+ * URL router + list cache. Disk is the source of truth; React state
+ * holds the last GET/POST result so a card click does not refetch.
  */
 export function MarketAccessContent() {
   const { segments, subPath, navigate, replace } = useAppSubRoute(APP_ID);
@@ -103,7 +99,7 @@ export function MarketAccessContent() {
     "idle" | "loading" | "error"
   >("idle");
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  // Bumping this re-runs the workspace GET (Retry) without changing the URL.
+  // Re-run workspace GET (Retry) without changing the URL.
   const [workspaceRetry, setWorkspaceRetry] = useState(0);
 
   const section = segments[0] ?? "";
@@ -135,7 +131,7 @@ export function MarketAccessContent() {
     void refreshList();
   }, [refreshList]);
 
-  // Canonicalize URLs only — unknown :id is decided by the workspace GET.
+  // URL canonicalize only — unknown :id is decided by the workspace GET.
   useEffect(() => {
     const parts = subPath.split("/").filter(Boolean);
 
@@ -161,9 +157,7 @@ export function MarketAccessContent() {
     }
   }, [subPath, replace]);
 
-  // Refresh / paste-link: fetch one assessment. Card click skips this
-  // because the row is already in the cache. `cancelled` ignores a
-  // response if the user navigates away mid-request.
+  // GET :id when not cached. Ignore the result if the user navigates away.
   useEffect(() => {
     if (!isWorkspaceRoute || !id) {
       setWorkspaceStatus("idle");

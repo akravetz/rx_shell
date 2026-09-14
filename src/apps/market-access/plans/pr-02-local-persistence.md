@@ -4,13 +4,13 @@ Canonical PR 2 plan. Do not maintain a second evolving copy elsewhere.
 
 **Goal:** persist assessments as real local directories so create / list / workspace survive refresh, app restart, and the normal Dev Container rebuild/recreation workflow.
 
-**Status:** In progress — Phases 1–3 complete. PR 1 is historical context only.
+**Status:** Complete. PR 1 is historical context only.
 
 **Not this PR:** package parsing or conversion, agent invocation, analog/evidence work, filling `knowledge/`, presentations, SaaS/cloud, FolderPicker root setup, extra workflow folders beyond `sources/` and `knowledge/`.
 
 Work **one internal phase at a time**. Stop after each phase.
 
-**Progress:** Phase 1 complete (client `PackageFormat` rename + PPTX + 200-character / 20 MiB checks). Phase 2 complete (service, `/api/market-access/*`, `sources/` + empty `knowledge/`, `/.local/` gitignore). Phase 3 complete (UI wired to the API; session-only create path gone). Phase 4 not started.
+**Progress:** All phases complete. Phase 1: client `PackageFormat` + PPTX + 200-character / 20 MiB checks. Phase 2: service, `/api/market-access/*`, `sources/` + empty `knowledge/`, `/.local/` gitignore. Phase 3: UI wired to the API; session-only create path gone. Phase 4: docs synced.
 
 ---
 
@@ -288,7 +288,7 @@ Stop after each phase.
 
 **Acceptance:** Create POSTs the `File`; on success cache the DTO then navigate; list GET on mount; returning to the list shows the new card without refresh; later GET may reconcile; refresh/deep link GET `:id`; unknown id flash “Assessment not found.”; skipped-count banner; loading / list error + Retry / create submitting + alert; session-only copy gone; no root path printed; card click navigates only.
 
-### Phase 4 — Docs — not started
+### Phase 4 — Docs — complete
 
 **Acceptance:** `AGENTS.md` smoke checks; `ARCHITECTURE.md` file map + persistence; this plan complete; `npm run check` + market-access and service tests.
 

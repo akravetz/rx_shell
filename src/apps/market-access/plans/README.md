@@ -5,7 +5,7 @@ Local-first AIShell app for Global Market Access research: human-in-the-loop, ev
 ## PR sequence
 
 1. **PR 1 — UI foundation** (complete — [`pr-01-ui-foundation.md`](pr-01-ui-foundation.md))
-2. **PR 2 — local assessment creation and persistence** (active — [`pr-02-local-persistence.md`](pr-02-local-persistence.md); host-visible directories with `sources/` and `knowledge/`, Markdown/DOCX/PPTX copy)
+2. **PR 2 — local assessment creation and persistence** (complete — [`pr-02-local-persistence.md`](pr-02-local-persistence.md); host-visible directories with `sources/` and `knowledge/`, Markdown/DOCX/PPTX copy)
 3. **PR 3 —** documentation-only CodaScope research, architecture proposal / first ADR, and progressive-disclosure documentation
 4. Later implementation scope follows the accepted ADR
 
@@ -13,12 +13,12 @@ Do not create `pr-03-…md` or reorganize docs in this PR. Do not design later i
 
 ## What to read
 
-**Normally read only the active PR plan.** For current behavior, read [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`AGENTS.md`](../AGENTS.md). Completed plans are historical design records.
+**No active implementation plan.** For current behavior, read [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`AGENTS.md`](../AGENTS.md). Completed plans are historical design records.
 
 | Plan | Status |
 | --- | --- |
 | [`pr-01-ui-foundation.md`](pr-01-ui-foundation.md) | **Complete / historical** — UI foundation |
-| [`pr-02-local-persistence.md`](pr-02-local-persistence.md) | **Active** — host-visible local persistence (`sources/` + `knowledge/`, MD/DOCX/PPTX) |
+| [`pr-02-local-persistence.md`](pr-02-local-persistence.md) | **Complete / historical** — host-visible local persistence (`sources/` + `knowledge/`, MD/DOCX/PPTX) |
 
 Completed plans stay as historical design records. They are not mandatory context for later work.
 

@@ -37,8 +37,7 @@ export function AssessmentList({
     b.createdAt.localeCompare(a.createdAt),
   );
   const hasAssessments = sorted.length > 0;
-  // First visit only: do not replace existing cards with a spinner/error
-  // if a later Retry fails while we still have a cached list.
+  // Keep cached cards if a later Retry fails.
   const showInitialLoading = listStatus === "loading" && !hasAssessments;
   const showInitialError = listStatus === "error" && !hasAssessments;
 

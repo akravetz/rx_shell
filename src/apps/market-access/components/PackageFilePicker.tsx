@@ -17,8 +17,7 @@ interface PackageFilePickerProps {
 }
 
 /**
- * Click + drop zone for one package document. Selection stays in form state —
- * no upload or filesystem path (PR 2+).
+ * Click + drop zone for one package document. Selection stays in form state.
  */
 export function PackageFilePicker({
   file,

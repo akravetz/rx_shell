@@ -4,9 +4,9 @@ Operational rules for safely modifying **this app as it exists**. Workflow lives
 
 ## Current status
 
-**PR 1 (UI foundation) is complete.** Create → list → workspace with product name and package file metadata. No parsing or agent work yet.
+**PR 1–2 are complete.** Create → list → workspace with product name, package metadata, and host-visible disk persistence via `/api/market-access/*`. No parsing or agent work yet.
 
-**PR 2 Phases 1–3 are complete** — `PackageFormat`, client limits, `/api/market-access/*` disk persistence, and UI wired to that API. Next: **PR 2 Phase 4** (docs). Historical design: [`plans/pr-01-ui-foundation.md`](plans/pr-01-ui-foundation.md). Active plan: [`plans/pr-02-local-persistence.md`](plans/pr-02-local-persistence.md).
+Historical: [`plans/pr-01-ui-foundation.md`](plans/pr-01-ui-foundation.md), [`plans/pr-02-local-persistence.md`](plans/pr-02-local-persistence.md). Next intended work: PR 3 (documentation-only research / ADR) — do not start it unless asked.
 
 ## Conventions
 
@@ -33,7 +33,7 @@ See [`APP_DEVELOPMENT_GUIDE.md`](../../../APP_DEVELOPMENT_GUIDE.md) and [`.agent
 | Assessment API | `server/routes/marketAccessRoutes.ts` |
 | Assessment disk service | `server/services/marketAccessAssessmentService.ts` |
 
-Do not import `src/apps` from `server/`. Do not add FolderPicker or agent modules unless the active plan says so. Default disk root is `<repo>/.local/market-access/assessments`. Each assessment dir is `assessment.json` + `sources/` + empty `knowledge/` only.
+Do not import `src/apps` from `server/`. Do not add FolderPicker or agent modules unless the active plan says so. Default disk root is `<repo>/.local/market-access/assessments`. Each assessment dir is `assessment.json` + `sources/` + empty `knowledge/` only. Do not print that path in the UI.
 
 ## Verification
 
@@ -44,8 +44,8 @@ Do not import `src/apps` from `server/`. Do not add FolderPicker or agent module
 [ ] 1. Create assessment (name + Markdown, Word, or PowerPoint package) → workspace shows metadata including format → **All assessments** shows the new card without a refresh → refresh the page → reopen from the list card
 [ ] 2. Create stays enabled; submit rejects blank/over-200-character names, missing file, `.ppt` / other rejected extensions, and files over 20 MiB (`role="alert"`)
 [ ] 3. Unknown `/assessments/<id>` → list + “Assessment not found.”
-[ ] 4. API down → list error + Retry (no Linux root path on screen). Easiest: Chrome DevTools → Network → right-click `/api/market-access/assessments` → Block request URL → refresh the list. Unblock, then Retry.
-[x] 5. `?nav=collapsed` preserved when navigating; collapsed nav still shows icons
+[ ] 4. API down → list error + Retry (no Linux root path on screen). DevTools → Network → block `/api/market-access/assessments` → refresh → unblock → Retry
+[ ] 5. `?nav=collapsed` preserved when navigating; collapsed nav still shows icons; no nested `<main>`; no emoji
 
 ## Common mistakes
 

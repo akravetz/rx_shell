@@ -30,7 +30,7 @@ const PACKAGE_FIELD_CODES = new Set([
   "file_too_large",
 ]);
 
-/** Field-shaped API codes sit on the field; write/network failures stay on the form. */
+/** Map API codes onto the matching field; other failures stay on the form. */
 function applyCreateError(
   err: unknown,
   setFieldErrors: (errors: FieldErrors) => void,
@@ -59,7 +59,7 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fast UX only — the server repeats these checks and is authoritative.
+  // Client UX; the server repeats these checks and is authoritative.
   function validate(): FieldErrors | null {
     const errors: FieldErrors = {};
     const trimmedName = productName.trim();
@@ -83,9 +83,7 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
   const handleSubmit = useCallback<SubmitEventHandler<HTMLFormElement>>(
     (e) => {
       e.preventDefault();
-      // Button stays enabled (validate on submit). Ignore a second click
-      // while the POST is in flight so we do not create two assessments.
-      if (submitting) return;
+      if (submitting) return; // ignore a second submit while POST is in flight
 
       const errors = validate();
       if (errors) {

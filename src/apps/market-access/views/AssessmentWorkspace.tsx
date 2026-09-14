@@ -14,7 +14,7 @@ interface AssessmentWorkspaceProps {
   assessment: Assessment;
 }
 
-/** Workspace overview — reads the Assessment view-model only (no disk paths). */
+/** Workspace overview — Assessment view-model only. */
 export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
   const { productName, packageFile } = assessment;
 
