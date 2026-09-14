@@ -6,7 +6,7 @@ import {
 } from "../components/MarketAccessIcons";
 import {
   formatPackageFileSize,
-  packageFileKindLabel,
+  packageFormatLabel,
 } from "../packageFile";
 import type { Assessment } from "../types";
 
@@ -14,7 +14,7 @@ interface AssessmentWorkspaceProps {
   assessment: Assessment;
 }
 
-/** Workspace overview — product metadata and placeholder sections for later work. */
+/** Workspace overview — Assessment view-model only. */
 export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
   const { productName, packageFile } = assessment;
 
@@ -28,10 +28,6 @@ export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
         <h1 id="market-access-workspace-heading" className="market-access-title">
           {productName}
         </h1>
-        <p className="market-access-session-note">
-          This assessment is not saved to disk. Refreshing the browser will
-          remove it.
-        </p>
       </header>
 
       <section
@@ -55,7 +51,7 @@ export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
           <div className="market-access-meta-row">
             <dt className="market-access-meta-label">Format</dt>
             <dd className="market-access-meta-value">
-              {packageFileKindLabel(packageFile.kind)}
+              {packageFormatLabel(packageFile.format)}
             </dd>
           </div>
         </dl>

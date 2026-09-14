@@ -6,7 +6,7 @@
 
 ## Reading order
 
-See [`DEVELOPMENT.md`](DEVELOPMENT.md). For the current design, read the [active plan](plans/README.md).
+See [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## Level 0 — What Is This?
 
@@ -22,7 +22,7 @@ structured or extracted project knowledge
 generated synthesis / assessment
 ```
 
-**Implementation status:** PR 1 complete — session-only create → list → workspace flow with package metadata and placeholder sections. Next: PR 2 (local persistence). Design record: [`plans/pr-01-ui-foundation.md`](plans/pr-01-ui-foundation.md).
+**Implementation status:** PR 1–2 complete — create → list → workspace with host-visible disk persistence via `/api/market-access/*`. No package parsing or agent work yet.
 
 ## Level 1 — File map
 
@@ -32,25 +32,35 @@ src/apps/market-access/
 ├── ARCHITECTURE.md             # ← You are here (implemented system)
 ├── AGENTS.md                   # How to modify the current implementation
 ├── manifest.tsx                # AppManifest — mainContent + leftNav
-├── MarketAccessContent.tsx     # URL router + in-memory assessments
+├── MarketAccessContent.tsx     # URL router + list cache
 ├── MarketAccessNav.tsx         # URL-only left nav
 ├── market-access.css           # Namespaced .market-access-* styles
-├── types.ts                    # Assessment view-model
-├── packageFile.ts              # Package extension/kind helpers
+├── types.ts                    # Assessment view-model (≡ API JSON)
+├── assessmentApi.ts            # fetch + { error, code }
+├── assessmentApi.test.ts
+├── packageFile.ts              # Package extension/format helpers
 ├── packageFile.test.ts
 ├── components/
 │   ├── MarketAccessIcons.tsx   # SVG icons
-│   └── PackageFilePicker.tsx   # Click + drop file selection (no upload)
+│   └── PackageFilePicker.tsx   # Click + drop file selection
 ├── views/
-│   ├── AssessmentList.tsx      # List, empty state, session cards
+│   ├── AssessmentList.tsx      # List, empty state, persisted cards
 │   ├── CreateAssessment.tsx    # Create form + colocated validate()
 │   └── AssessmentWorkspace.tsx # Overview + placeholder sections
 └── plans/
     ├── README.md
-    └── pr-01-ui-foundation.md
+    ├── pr-01-ui-foundation.md  # Historical
+    └── pr-02-local-persistence.md  # Historical
+
+server/
+├── routes/marketAccessRoutes.ts          # GET/POST /api/market-access/assessments
+├── routes/marketAccessRoutes.test.ts
+└── services/marketAccessAssessmentService.ts  # Disk create/list/get (+ tests)
 ```
 
-Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CSS imported from [`src/styles.css`](../../styles.css).
+Default assessments root: `<repo>/.local/market-access/assessments` (override: absolute `AISHELL_MARKET_ACCESS_ASSESSMENTS_ROOT`). Gitignored via root-anchored `/.local/`.
+
+Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CSS imported from [`src/styles.css`](../../styles.css). Routes registered from [`server/index.ts`](../../../server/index.ts).
 
 ## Level 2 — Shell wiring
 
@@ -58,44 +68,82 @@ Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CS
 
 ## Level 3 — Routing
 
-`MarketAccessContent` owns sub-routes via `useAppSubRoute("market-access")` and holds `useState<Assessment[]>` for the current browser session. Nav reads the same URL; it does not share React state with the canvas.
+`MarketAccessContent` owns sub-routes via `useAppSubRoute("market-access")` and holds a fetched list cache. Nav reads the same URL; it does not share React state with the canvas.
 
 | URL | View |
 | --- | --- |
 | `/market-access` | `replace("assessments")` |
-| `/market-access/assessments` | List (empty or session cards) |
-| `/market-access/assessments/new` | Create form |
-| `/market-access/assessments/:id` | Workspace overview |
+| `/market-access/assessments` | List (GET on mount; empty, cards, loading, or error + Retry) |
+| `/market-access/assessments/new` | Create form (POST multipart `productName` + `file`) |
+| `/market-access/assessments/:id` | Workspace overview (cache hit, or GET `:id`) |
 | Other first segments | List + flash; URL replaced to `assessments` |
 | `/assessments/:id/...` extra | Stripped to overview |
-| Unknown `:id` | List + “not saved yet” flash |
+| Unknown `:id` | List + “Assessment not found.” |
 
-Create validates product name and one Markdown/DOCX package file, appends an `Assessment` to root state, and navigates to the new workspace. Refresh clears assessments; unknown ids redirect to the list.
+Create validates product name (required, max 200 characters) and one Markdown/DOCX/PPTX package file (accepted extension, 20 MiB cap), POSTs the `File`, puts the returned assessment in the list cache, then navigates to the workspace. Refresh and deep links GET `:id`. Card click only navigates.
 
-## Level 4 — State
+## Level 4 — State and persistence
 
 | Concern | Owner |
 | --- | --- |
-| In-memory assessments | `useState<Assessment[]>` in `MarketAccessContent` |
+| Fetched list cache | `useState<Assessment[]>` in `MarketAccessContent` after GET/POST |
 | Create-form fields / errors | Local `useState` in `CreateAssessment` |
-| Package on disk | Not stored — metadata `{ fileName, fileSize, kind }` only |
+| Package on disk | API writes `assessment.json` + `sources/<file>` + empty `knowledge/` |
 | Current view | URL via `useAppSubRoute` |
 
-No `localStorage`, Zustand, or `/api/*` in PR 1.
+No `localStorage` or Zustand. Disk via `/api/market-access/*` is the source of truth. The list cache is the last GET (mount or Retry) or POST result. Views consume `Assessment` — no filesystem paths.
 
-## Level 5 — PR 1 boundaries
+### Layers
 
-Implemented in PR 1:
+| Layer | Shape | Owner |
+| --- | --- | --- |
+| Disk | `AssessmentRecord` | `marketAccessAssessmentService` |
+| HTTP JSON | `AssessmentDto` (same fields as the view-model) | `marketAccessRoutes` |
+| UI | `Assessment` in [`types.ts`](types.ts) | views via props |
+| Client HTTP | `assessmentApi.ts` | `fetch` + `{ error, code }` |
+
+`server/` does not import `src/apps`. The package-format allowlist is duplicated and kept aligned by test.
+
+### On-disk layout
+
+```
+<assessmentsRoot>/
+  <slug>/
+    assessment.json
+    sources/
+      <sanitized-original-name>
+    knowledge/          # empty; no generation yet
+```
+
+Directory name is a slug from the product name (80-character cap before collision suffixes `-2`, `-3`). Lookup scans `*/assessment.json` for UUID; never `path.join(root, id)`. Create writes `assessment.json` via temp file then rename. Failed create removes only the directory this request created.
+
+`assessment.json` (`schemaVersion: 1`) stores `id`, `productName`, ISO-8601 `createdAt` / `updatedAt`, and `package` (`originalFileName`, `storedFileName`, `fileSize`, `format`). Unknown schema or invalid JSON is omitted from the list and counted as `skippedCount`.
+
+### API
+
+| Method | Path | Result |
+| --- | --- | --- |
+| GET | `/api/market-access/assessments` | `{ assessments: AssessmentDto[], skippedCount }` |
+| POST | `/api/market-access/assessments` | multipart `productName` + `file` → `{ assessment }` |
+| GET | `/api/market-access/assessments/:id` | `{ assessment }` or 404 |
+
+No `GET /config`. HTTP bodies do not include host or container paths.
+
+## Level 5 — Current boundaries
+
+Implemented:
 
 - Shell registration, URL routing, left nav
-- Create form (product name + one Markdown/DOCX package file)
-- In-memory session assessments and list cards
+- Create form (product name + one Markdown/DOCX/PPTX package file)
+- Client submit checks: name required and ≤ 200 characters; file required; accepted extension; 20 MiB size cap
+- Persisted assessments via `/api/market-access/*` (copy bytes unchanged; empty `knowledge/`)
+- List cache, skipped-count banner, loading / list error + Retry
 - Workspace overview with package metadata and non-authoritative placeholders
 
-Explicitly deferred to later PRs:
+Explicitly deferred:
 
-- Disk / project-directory persistence (PR 2)
-- Package parsing and file copy (PR 2+)
+- Package parsing or conversion
 - Agent harness and analog research (PR 3+)
 - Knowledge repository generation (PR 4+)
 - Rename, delete, routed sub-pages, right-panel assistant
+- FolderPicker / change-location / displaying the Linux root path

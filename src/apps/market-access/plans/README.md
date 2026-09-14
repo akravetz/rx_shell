@@ -5,19 +5,20 @@ Local-first AIShell app for Global Market Access research: human-in-the-loop, ev
 ## PR sequence
 
 1. **PR 1 — UI foundation** (complete — [`pr-01-ui-foundation.md`](pr-01-ui-foundation.md))
-2. **PR 2 —** local assessment creation and persistence
-3. **PR 3 —** provider-agnostic agent harness (first implementation may use Cursor CLI)
-4. **PR 4 —** agent-generated knowledge repository / initial analog research
+2. **PR 2 — local assessment creation and persistence** (complete — [`pr-02-local-persistence.md`](pr-02-local-persistence.md); host-visible directories with `sources/` and `knowledge/`, Markdown/DOCX/PPTX copy)
+3. **PR 3 —** documentation-only CodaScope research, architecture proposal / first ADR, and progressive-disclosure documentation
+4. Later implementation scope follows the accepted ADR
 
-Do not design PRs 2–4 in detail until those PRs are being planned. Add `pr-02-…md` (and later) only then.
+Do not create `pr-03-…md` or reorganize docs in this PR. Do not design later implementation PRs until the ADR is accepted.
 
 ## What to read
 
-**For PR 1 work:** the plan below is a historical design record. For current behavior, read [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`AGENTS.md`](../AGENTS.md).
+**No active implementation plan.** For current behavior, read [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`AGENTS.md`](../AGENTS.md). Completed plans are historical design records.
 
 | Plan | Status |
 | --- | --- |
-| [`pr-01-ui-foundation.md`](pr-01-ui-foundation.md) | **Complete** — PR 1 UI foundation |
+| [`pr-01-ui-foundation.md`](pr-01-ui-foundation.md) | **Complete / historical** — UI foundation |
+| [`pr-02-local-persistence.md`](pr-02-local-persistence.md) | **Complete / historical** — host-visible local persistence (`sources/` + `knowledge/`, MD/DOCX/PPTX) |
 
 Completed plans stay as historical design records. They are not mandatory context for later work.
 

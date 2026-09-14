@@ -3,6 +3,7 @@ import { IconUpload } from "./MarketAccessIcons";
 import {
   PACKAGE_FILE_ACCEPT,
   isAcceptedPackageFile,
+  isPackageFileTooLarge,
   packageFileRejectionMessage,
 } from "../packageFile";
 
@@ -16,8 +17,7 @@ interface PackageFilePickerProps {
 }
 
 /**
- * Click + drop zone for one package document. Selection stays in form state —
- * no upload or filesystem path (PR 2+).
+ * Click + drop zone for one package document. Selection stays in form state.
  */
 export function PackageFilePicker({
   file,
@@ -34,6 +34,10 @@ export function PackageFilePicker({
     (candidate: File) => {
       if (!isAcceptedPackageFile(candidate.name)) {
         setPickError(packageFileRejectionMessage(candidate.name));
+        return;
+      }
+      if (isPackageFileTooLarge(candidate.size)) {
+        setPickError("Package file must be 20 MiB or smaller.");
         return;
       }
       setPickError(null);
@@ -89,6 +93,10 @@ export function PackageFilePicker({
   );
 
   const displayError = error ?? pickError;
+  const errorId = `${inputId}-error`;
+  const describedBy = displayError
+    ? `${describedById} ${errorId}`
+    : describedById;
 
   return (
     <div className="market-access-file-picker">
@@ -101,7 +109,8 @@ export function PackageFilePicker({
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-describedby={describedById}
+        aria-invalid={displayError ? true : undefined}
+        aria-describedby={describedBy}
       >
         <span aria-hidden>
           <IconUpload size={24} />
@@ -121,7 +130,8 @@ export function PackageFilePicker({
               : "market-access-file-picker-hint"
           }
         >
-          Markdown (.md, .markdown) or Word (.docx)
+          Markdown (.md, .markdown), Word (.docx), or PowerPoint (.pptx).
+          Maximum 20 MiB.
         </span>
         <input
           ref={fileInputRef}
@@ -131,10 +141,16 @@ export function PackageFilePicker({
           onChange={handleFileSelect}
           className="market-access-file-picker-input"
           tabIndex={-1}
+          aria-invalid={displayError ? true : undefined}
+          aria-describedby={describedBy}
         />
       </div>
       {displayError ? (
-        <div className="market-access-field-error" role="alert">
+        <div
+          id={errorId}
+          className="market-access-field-error"
+          role="alert"
+        >
           {displayError}
         </div>
       ) : null}

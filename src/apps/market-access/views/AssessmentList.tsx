@@ -1,25 +1,45 @@
 import { IconAssessments } from "../components/MarketAccessIcons";
-import { packageFileKindLabel } from "../packageFile";
+import { packageFormatLabel } from "../packageFile";
 import type { Assessment } from "../types";
 
 interface AssessmentListProps {
   assessments: Assessment[];
+  skippedCount: number;
+  listStatus: "loading" | "ready" | "error";
+  listError: string | null;
   flashMessage: string | null;
   onDismissFlash: () => void;
+  onRetry: () => void;
   onCreate: () => void;
   onOpen: (assessmentId: string) => void;
 }
 
-/** Assessments hub — empty state or same-session in-memory cards. */
+function skippedBannerText(count: number): string {
+  if (count === 1) {
+    return "One saved assessment could not be loaded.";
+  }
+  return `${count} saved assessments could not be loaded.`;
+}
+
+/** Assessments hub — persisted cards, empty state, or load error. */
 export function AssessmentList({
   assessments,
+  skippedCount,
+  listStatus,
+  listError,
   flashMessage,
   onDismissFlash,
+  onRetry,
   onCreate,
   onOpen,
 }: AssessmentListProps) {
-  const sorted = [...assessments].sort((a, b) => b.createdAt - a.createdAt);
+  const sorted = [...assessments].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
   const hasAssessments = sorted.length > 0;
+  // Keep cached cards if a later Retry fails.
+  const showInitialLoading = listStatus === "loading" && !hasAssessments;
+  const showInitialError = listStatus === "error" && !hasAssessments;
 
   return (
     <div
@@ -40,13 +60,34 @@ export function AssessmentList({
         </div>
       ) : null}
 
+      {listError && hasAssessments ? (
+        <div className="market-access-banner market-access-banner-error" role="alert">
+          <p className="market-access-banner-text">{listError}</p>
+          <button
+            type="button"
+            className="market-access-btn market-access-btn-ghost"
+            onClick={onRetry}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {skippedCount > 0 ? (
+        <div className="market-access-banner" role="status">
+          <p className="market-access-banner-text">
+            {skippedBannerText(skippedCount)}
+          </p>
+        </div>
+      ) : null}
+
       <header className="market-access-list-header">
         <h1 id="market-access-list-heading" className="market-access-title">
           Assessments
         </h1>
         <p className="market-access-session-note">
-          Assessments exist only for this browser session. Nothing is saved to
-          disk yet — refreshing the page will clear them.
+          Assessments are saved on this computer and remain after you refresh
+          or reopen the app.
         </p>
       </header>
 
@@ -60,7 +101,37 @@ export function AssessmentList({
         </button>
       </div>
 
-      {hasAssessments ? (
+      {showInitialLoading ? (
+        <p className="market-access-status" aria-live="polite">
+          Loading assessments…
+        </p>
+      ) : null}
+
+      {showInitialError ? (
+        <section
+          className="market-access-empty"
+          aria-labelledby="market-access-list-error-heading"
+        >
+          <h2
+            id="market-access-list-error-heading"
+            className="market-access-empty-title"
+          >
+            Could not load assessments
+          </h2>
+          <p className="market-access-form-error" role="alert">
+            {listError ?? "Could not load assessments."}
+          </p>
+          <button
+            type="button"
+            className="market-access-btn market-access-btn-primary"
+            onClick={onRetry}
+          >
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {!showInitialLoading && !showInitialError && hasAssessments ? (
         <section aria-labelledby="market-access-assessment-list-heading">
           <h2
             id="market-access-assessment-list-heading"
@@ -82,7 +153,7 @@ export function AssessmentList({
                     </span>
                     <span className="market-access-assessment-card-meta">
                       {assessment.packageFile.fileName} ·{" "}
-                      {packageFileKindLabel(assessment.packageFile.kind)}
+                      {packageFormatLabel(assessment.packageFile.format)}
                     </span>
                   </button>
                 </article>
@@ -90,7 +161,9 @@ export function AssessmentList({
             ))}
           </ul>
         </section>
-      ) : (
+      ) : null}
+
+      {!showInitialLoading && !showInitialError && !hasAssessments ? (
         <section
           className="market-access-empty"
           aria-labelledby="market-access-empty-heading"
@@ -102,11 +175,11 @@ export function AssessmentList({
             No assessments yet
           </h2>
           <p className="market-access-empty-text">
-            Create an assessment for one product or asset. Attach a Markdown or
-            Word package to research pharmaceutical analogs.
+            Create an assessment for one product or asset. Attach a Markdown,
+            Word, or PowerPoint package to research pharmaceutical analogs.
           </p>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

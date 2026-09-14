@@ -1,11 +1,16 @@
 import { useCallback, useState, type SubmitEventHandler } from "react";
+import { AssessmentApiError } from "../assessmentApi";
 import { PackageFilePicker } from "../components/PackageFilePicker";
-import { getPackageFileKind, isAcceptedPackageFile } from "../packageFile";
+import {
+  isAcceptedPackageFile,
+  isPackageFileTooLarge,
+  isProductNameTooLong,
+} from "../packageFile";
 import type { CreateAssessmentInput } from "../types";
 
 interface CreateAssessmentProps {
   onCancel: () => void;
-  onCreate: (input: CreateAssessmentInput) => void;
+  onCreate: (input: CreateAssessmentInput) => Promise<void>;
 }
 
 interface FieldErrors {
@@ -18,22 +23,59 @@ const PRODUCT_NAME_ERROR_ID = "market-access-product-name-error";
 const PACKAGE_FILE_ID = "market-access-package-file";
 const PACKAGE_FILE_HINT_ID = "market-access-package-file-hint";
 
+const PACKAGE_FIELD_CODES = new Set([
+  "missing_package_file",
+  "unsupported_package_type",
+  "invalid_upload",
+  "file_too_large",
+]);
+
+/** Map API codes onto the matching field; other failures stay on the form. */
+function applyCreateError(
+  err: unknown,
+  setFieldErrors: (errors: FieldErrors) => void,
+  setFormError: (message: string | null) => void,
+): void {
+  if (!(err instanceof AssessmentApiError)) {
+    setFormError("Could not save the assessment.");
+    return;
+  }
+  if (err.code === "invalid_product_name") {
+    setFieldErrors({ productName: err.message });
+    return;
+  }
+  if (PACKAGE_FIELD_CODES.has(err.code)) {
+    setFieldErrors({ packageFile: err.message });
+    return;
+  }
+  setFormError(err.message);
+}
+
 /** Dedicated create page — product name plus one package document. */
 export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) {
   const [productName, setProductName] = useState("");
   const [packageFile, setPackageFile] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
+  // Client UX; the server repeats these checks and is authoritative.
   function validate(): FieldErrors | null {
     const errors: FieldErrors = {};
-    if (!productName.trim()) {
+    const trimmedName = productName.trim();
+    if (!trimmedName) {
       errors.productName = "Product or drug name is required.";
+    } else if (isProductNameTooLong(trimmedName)) {
+      errors.productName =
+        "Product or drug name must be 200 characters or fewer.";
     }
     if (!packageFile) {
       errors.packageFile = "A package file is required.";
     } else if (!isAcceptedPackageFile(packageFile.name)) {
       errors.packageFile =
-        "Use a Markdown (.md, .markdown) or Word (.docx) package file.";
+        "Use a Markdown (.md, .markdown), Word (.docx), or PowerPoint (.pptx) package file.";
+    } else if (isPackageFileTooLarge(packageFile.size)) {
+      errors.packageFile = "Package file must be 20 MiB or smaller.";
     }
     return Object.keys(errors).length > 0 ? errors : null;
   }
@@ -41,32 +83,30 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
   const handleSubmit = useCallback<SubmitEventHandler<HTMLFormElement>>(
     (e) => {
       e.preventDefault();
+      if (submitting) return; // ignore a second submit while POST is in flight
+
       const errors = validate();
       if (errors) {
         setFieldErrors(errors);
-        return;
-      }
-
-      const kind = getPackageFileKind(packageFile!.name);
-      if (!kind) {
-        setFieldErrors({
-          packageFile:
-            "Use a Markdown (.md, .markdown) or Word (.docx) package file.",
-        });
+        setFormError(null);
         return;
       }
 
       setFieldErrors({});
-      onCreate({
+      setFormError(null);
+      setSubmitting(true);
+      void onCreate({
         productName: productName.trim(),
-        packageFile: {
-          fileName: packageFile!.name,
-          fileSize: packageFile!.size,
-          kind,
-        },
-      });
+        file: packageFile!,
+      })
+        .catch((err) => {
+          applyCreateError(err, setFieldErrors, setFormError);
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
     },
-    [onCreate, packageFile, productName],
+    [onCreate, packageFile, productName, submitting],
   );
 
   const handleProductNameChange = useCallback((value: string) => {
@@ -106,6 +146,12 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
       </header>
 
       <form className="market-access-form" onSubmit={handleSubmit} noValidate>
+        {formError ? (
+          <div className="market-access-form-error" role="alert">
+            {formError}
+          </div>
+        ) : null}
+
         <div className="market-access-field">
           <label className="market-access-label" htmlFor={PRODUCT_NAME_ID}>
             Product or drug name
@@ -146,6 +192,12 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
             describedById={PACKAGE_FILE_HINT_ID}
           />
         </div>
+
+        {submitting ? (
+          <p className="market-access-status" aria-live="polite">
+            Saving assessment…
+          </p>
+        ) : null}
 
         <div className="market-access-form-actions">
           <button
