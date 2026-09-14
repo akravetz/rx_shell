@@ -14,7 +14,7 @@ interface AssessmentWorkspaceProps {
   assessment: Assessment;
 }
 
-/** Workspace overview — product metadata and placeholder sections for later work. */
+/** Workspace overview — reads the Assessment view-model only (no disk paths). */
 export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
   const { productName, packageFile } = assessment;
 
@@ -28,10 +28,6 @@ export function AssessmentWorkspace({ assessment }: AssessmentWorkspaceProps) {
         <h1 id="market-access-workspace-heading" className="market-access-title">
           {productName}
         </h1>
-        <p className="market-access-session-note">
-          This assessment is not saved to disk. Refreshing the browser will
-          remove it.
-        </p>
       </header>
 
       <section

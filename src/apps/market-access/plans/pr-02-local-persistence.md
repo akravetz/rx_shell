@@ -4,13 +4,13 @@ Canonical PR 2 plan. Do not maintain a second evolving copy elsewhere.
 
 **Goal:** persist assessments as real local directories so create / list / workspace survive refresh, app restart, and the normal Dev Container rebuild/recreation workflow.
 
-**Status:** In progress — Phases 1–2 complete. PR 1 is historical context only.
+**Status:** In progress — Phases 1–3 complete. PR 1 is historical context only.
 
 **Not this PR:** package parsing or conversion, agent invocation, analog/evidence work, filling `knowledge/`, presentations, SaaS/cloud, FolderPicker root setup, extra workflow folders beyond `sources/` and `knowledge/`.
 
 Work **one internal phase at a time**. Stop after each phase.
 
-**Progress:** Phase 1 complete (client `PackageFormat` rename + PPTX + 200-character / 20 MiB checks). Phase 2 complete (service, `/api/market-access/*`, `sources/` + empty `knowledge/`, `/.local/` gitignore). Phases 3–4 not started. UI still session-only.
+**Progress:** Phase 1 complete (client `PackageFormat` rename + PPTX + 200-character / 20 MiB checks). Phase 2 complete (service, `/api/market-access/*`, `sources/` + empty `knowledge/`, `/.local/` gitignore). Phase 3 complete (UI wired to the API; session-only create path gone). Phase 4 not started.
 
 ---
 
@@ -284,7 +284,7 @@ Stop after each phase.
 
 **Acceptance:** Default root `<repo>/.local/market-access/assessments`; absolute `AISHELL_MARKET_ACCESS_ASSESSMENTS_ROOT` honored; relative/empty override rejected; create writes atomic `assessment.json` + `sources/<file>` + empty `knowledge/`; UUID + 80-char slug + `EEXIST` retry; list returns `skippedCount`; GET by id; 400s for name/file/type/`invalid_upload`; 413 oversize; 500 `write_failed` / `storage_unavailable` with no paths in the body; sanitize `../` and `\`; cleanup only the new dir; allowlist alignment test; `/.local/` in `.gitignore`. Inject a temp root into the service in tests; add an env-resolution test only if resolution is a separate function. UI may still be session-only.
 
-### Phase 3 — Wire UI — not started
+### Phase 3 — Wire UI — complete
 
 **Acceptance:** Create POSTs the `File`; on success cache the DTO then navigate; list GET on mount; returning to the list shows the new card without refresh; later GET may reconcile; refresh/deep link GET `:id`; unknown id flash “Assessment not found.”; skipped-count banner; loading / list error + Retry / create submitting + alert; session-only copy gone; no root path printed; card click navigates only.
 

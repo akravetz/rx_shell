@@ -22,7 +22,7 @@ structured or extracted project knowledge
 generated synthesis / assessment
 ```
 
-**Implementation status:** PR 1 complete — session-only create → list → workspace. PR 2 Phases 1–2 complete — `PackageFormat`, client limits, and disk/API persistence (`/api/market-access/*`). The UI still uses session state and does not call the API yet. Next: PR 2 Phase 3 (wire UI).
+**Implementation status:** PR 1 complete — create → list → workspace. PR 2 Phases 1–3 complete — `PackageFormat`, client limits, disk/API persistence, and UI wired to `/api/market-access/*`. Next: PR 2 Phase 4 (docs).
 
 ## Level 1 — File map
 
@@ -32,10 +32,12 @@ src/apps/market-access/
 ├── ARCHITECTURE.md             # ← You are here (implemented system)
 ├── AGENTS.md                   # How to modify the current implementation
 ├── manifest.tsx                # AppManifest — mainContent + leftNav
-├── MarketAccessContent.tsx     # URL router + in-memory assessments
+├── MarketAccessContent.tsx     # URL router + list cache
 ├── MarketAccessNav.tsx         # URL-only left nav
 ├── market-access.css           # Namespaced .market-access-* styles
-├── types.ts                    # Assessment view-model
+├── types.ts                    # Assessment view-model (≡ API JSON)
+├── assessmentApi.ts            # fetch + { error, code }
+├── assessmentApi.test.ts
 ├── packageFile.ts              # Package extension/format helpers
 ├── packageFile.test.ts
 ├── components/
@@ -65,32 +67,32 @@ Shell wiring: imported from [`src/apps/registry.ts`](../../apps/registry.ts); CS
 
 ## Level 3 — Routing
 
-`MarketAccessContent` owns sub-routes via `useAppSubRoute("market-access")` and holds `useState<Assessment[]>` for the current browser session. Nav reads the same URL; it does not share React state with the canvas.
+`MarketAccessContent` owns sub-routes via `useAppSubRoute("market-access")` and holds a fetched list cache. Nav reads the same URL; it does not share React state with the canvas.
 
 | URL | View |
 | --- | --- |
 | `/market-access` | `replace("assessments")` |
-| `/market-access/assessments` | List (empty or session cards) |
-| `/market-access/assessments/new` | Create form |
-| `/market-access/assessments/:id` | Workspace overview |
+| `/market-access/assessments` | List (GET on mount; empty, cards, loading, or error + Retry) |
+| `/market-access/assessments/new` | Create form (POST multipart `productName` + `file`) |
+| `/market-access/assessments/:id` | Workspace overview (cache hit, or GET `:id`) |
 | Other first segments | List + flash; URL replaced to `assessments` |
 | `/assessments/:id/...` extra | Stripped to overview |
-| Unknown `:id` | List + “not saved yet” flash |
+| Unknown `:id` | List + “Assessment not found.” |
 
-Create validates product name (required, max 200 characters) and one Markdown/DOCX/PPTX package file (accepted extension, 20 MiB cap), appends an `Assessment` to root state, and navigates to the new workspace. Refresh clears assessments; unknown ids redirect to the list.
+Create validates product name (required, max 200 characters) and one Markdown/DOCX/PPTX package file (accepted extension, 20 MiB cap), POSTs the `File`, puts the returned assessment in the list cache, then navigates to the workspace. Refresh and deep links GET `:id`. Card click only navigates.
 
-`GET/POST /api/market-access/assessments` and `GET /api/market-access/assessments/:id` persist to disk. The UI does not call them yet.
+`GET/POST /api/market-access/assessments` and `GET /api/market-access/assessments/:id` persist to disk. HTTP JSON matches the `Assessment` view-model (`createdAt` is ISO-8601). No filesystem paths in UI.
 
 ## Level 4 — State
 
 | Concern | Owner |
 | --- | --- |
-| In-memory assessments | `useState<Assessment[]>` in `MarketAccessContent` |
+| Fetched list cache | `useState<Assessment[]>` in `MarketAccessContent` after GET/POST |
 | Create-form fields / errors | Local `useState` in `CreateAssessment` |
-| Package on disk | Written by the API (`assessment.json` + `sources/<file>` + empty `knowledge/`); UI still stores metadata `{ fileName, fileSize, format }` only |
+| Package on disk | Written by the API (`assessment.json` + `sources/<file>` + empty `knowledge/`); UI stores metadata `{ fileName, fileSize, format }` only |
 | Current view | URL via `useAppSubRoute` |
 
-No `localStorage` or Zustand. `/api/market-access/*` exists; the UI still uses session state.
+No `localStorage` or Zustand. Disk via `/api/market-access/*` is the source of truth; the list cache may be reconciled by a later GET.
 
 ## Level 5 — Current boundaries
 
@@ -99,13 +101,13 @@ Implemented:
 - Shell registration, URL routing, left nav
 - Create form (product name + one Markdown/DOCX/PPTX package file)
 - Client submit checks: name required and ≤ 200 characters; file required; accepted extension; 20 MiB size cap
-- In-memory session assessments and list cards (UI not yet wired to the API)
+- Persisted assessments and list cards via `/api/market-access/*`
 - Workspace overview with package metadata and non-authoritative placeholders
 - Disk persistence API: create copies bytes to `sources/`, mkdir empty `knowledge/`, list returns `skippedCount`, GET by UUID
+- Skipped-count banner when a saved record cannot be read
 
 Explicitly deferred:
 
-- Wiring the UI to `/api/market-access/*` (PR 2 Phase 3)
 - Package parsing or conversion
 - Agent harness and analog research (PR 3+)
 - Knowledge repository generation (PR 4+)

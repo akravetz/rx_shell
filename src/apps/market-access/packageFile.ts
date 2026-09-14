@@ -4,7 +4,7 @@ export type PackageFormat = "markdown" | "docx" | "pptx";
 /** Browser `accept` attribute for the hidden file input. */
 export const PACKAGE_FILE_ACCEPT = ".md,.markdown,.docx,.pptx";
 
-/** Product name character cap (client UX; server will enforce the same). */
+/** Product name character cap (client UX; server enforces the same). */
 export const MAX_PRODUCT_NAME_LENGTH = 200;
 
 /** Package file size cap in bytes (20 MiB). */

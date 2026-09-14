@@ -79,6 +79,18 @@
   background: var(--color-bg-hover);
 }
 
+.market-access-status {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.market-access-form-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
 .market-access-banner {
   display: flex;
   align-items: center;
@@ -94,6 +106,10 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-primary);
+}
+
+.market-access-banner-error {
+  background: var(--color-danger-muted);
 }
 
 .market-access-nav .nav-item:disabled {

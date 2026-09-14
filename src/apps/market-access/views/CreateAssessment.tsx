@@ -1,7 +1,7 @@
 import { useCallback, useState, type SubmitEventHandler } from "react";
+import { AssessmentApiError } from "../assessmentApi";
 import { PackageFilePicker } from "../components/PackageFilePicker";
 import {
-  getPackageFormat,
   isAcceptedPackageFile,
   isPackageFileTooLarge,
   isProductNameTooLong,
@@ -10,7 +10,7 @@ import type { CreateAssessmentInput } from "../types";
 
 interface CreateAssessmentProps {
   onCancel: () => void;
-  onCreate: (input: CreateAssessmentInput) => void;
+  onCreate: (input: CreateAssessmentInput) => Promise<void>;
 }
 
 interface FieldErrors {
@@ -23,12 +23,43 @@ const PRODUCT_NAME_ERROR_ID = "market-access-product-name-error";
 const PACKAGE_FILE_ID = "market-access-package-file";
 const PACKAGE_FILE_HINT_ID = "market-access-package-file-hint";
 
+const PACKAGE_FIELD_CODES = new Set([
+  "missing_package_file",
+  "unsupported_package_type",
+  "invalid_upload",
+  "file_too_large",
+]);
+
+/** Field-shaped API codes sit on the field; write/network failures stay on the form. */
+function applyCreateError(
+  err: unknown,
+  setFieldErrors: (errors: FieldErrors) => void,
+  setFormError: (message: string | null) => void,
+): void {
+  if (!(err instanceof AssessmentApiError)) {
+    setFormError("Could not save the assessment.");
+    return;
+  }
+  if (err.code === "invalid_product_name") {
+    setFieldErrors({ productName: err.message });
+    return;
+  }
+  if (PACKAGE_FIELD_CODES.has(err.code)) {
+    setFieldErrors({ packageFile: err.message });
+    return;
+  }
+  setFormError(err.message);
+}
+
 /** Dedicated create page — product name plus one package document. */
 export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) {
   const [productName, setProductName] = useState("");
   const [packageFile, setPackageFile] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
+  // Fast UX only — the server repeats these checks and is authoritative.
   function validate(): FieldErrors | null {
     const errors: FieldErrors = {};
     const trimmedName = productName.trim();
@@ -52,32 +83,32 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
   const handleSubmit = useCallback<SubmitEventHandler<HTMLFormElement>>(
     (e) => {
       e.preventDefault();
+      // Button stays enabled (validate on submit). Ignore a second click
+      // while the POST is in flight so we do not create two assessments.
+      if (submitting) return;
+
       const errors = validate();
       if (errors) {
         setFieldErrors(errors);
-        return;
-      }
-
-      const format = getPackageFormat(packageFile!.name);
-      if (!format) {
-        setFieldErrors({
-          packageFile:
-            "Use a Markdown (.md, .markdown), Word (.docx), or PowerPoint (.pptx) package file.",
-        });
+        setFormError(null);
         return;
       }
 
       setFieldErrors({});
-      onCreate({
+      setFormError(null);
+      setSubmitting(true);
+      void onCreate({
         productName: productName.trim(),
-        packageFile: {
-          fileName: packageFile!.name,
-          fileSize: packageFile!.size,
-          format,
-        },
-      });
+        file: packageFile!,
+      })
+        .catch((err) => {
+          applyCreateError(err, setFieldErrors, setFormError);
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
     },
-    [onCreate, packageFile, productName],
+    [onCreate, packageFile, productName, submitting],
   );
 
   const handleProductNameChange = useCallback((value: string) => {
@@ -117,6 +148,12 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
       </header>
 
       <form className="market-access-form" onSubmit={handleSubmit} noValidate>
+        {formError ? (
+          <div className="market-access-form-error" role="alert">
+            {formError}
+          </div>
+        ) : null}
+
         <div className="market-access-field">
           <label className="market-access-label" htmlFor={PRODUCT_NAME_ID}>
             Product or drug name
@@ -157,6 +194,12 @@ export function CreateAssessment({ onCancel, onCreate }: CreateAssessmentProps) 
             describedById={PACKAGE_FILE_HINT_ID}
           />
         </div>
+
+        {submitting ? (
+          <p className="market-access-status" aria-live="polite">
+            Saving assessment…
+          </p>
+        ) : null}
 
         <div className="market-access-form-actions">
           <button
